@@ -32,3 +32,5 @@ class BasicCNN(nn.Module):
 
     def forward(self, x):
         return self.classifier(self.cnn(x))
+
+    
