@@ -40,5 +40,6 @@ num_classes=7
 
 
 model_base = BasicCNN(num_classes)
-hist_base = model_base.run_experiment(model_base, train_images, train_labels, EPOCHS)
-hist_base.plot_results(hist_base, EPOCHS)
+history = model_base.run_experiment(model_base, train_images, train_labels, EPOCHS)
+print(history)
+# hist_base.plot_results(hist_base, EPOCHS)
