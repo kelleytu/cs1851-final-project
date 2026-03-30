@@ -5,6 +5,9 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 from preprocessing import FPDataLoader
 from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, TensorDataset
+
+
 
 class BasicCNN(nn.Module):
     def __init__(self, num_classes=7, dropout_p=0.3):
@@ -37,37 +40,45 @@ class BasicCNN(nn.Module):
     def forward(self, x):
         return self.classifier(self.cnn(x))
 
+
+
     def train_one_epoch(self, model, X_train, y_train, optimizer, criterion):
+
+
+        train_loader = DataLoader(
+            TensorDataset(X_train, y_train),
+            batch_size=32,
+            shuffle=True
+        )
+        
+
+        print("training")
         model.train()
+
         total_loss = 0.0
 
-        # print(X_train.shape)
-        # for X, y in zip(X_train, y_train):
-            # X, y = X.to(DEVICE), y.to(DEVICE).squeeze().long()
-            # y = y.squeeze().long()
+        print("compute loss")
         optimizer.zero_grad()
-        # print(model(X).size(), y.size())
-        # print(y)
         loss = criterion(model(X_train), y_train)
-        loss.backward()
-        optimizer.step()
-        # total_loss += loss.item() * X.size(0)
 
+        print("backward pass")
+        loss.backward()
+        print("optimize step")
+        optimizer.step()
         return loss.item()
 
-        # return total_loss / X_train.shape[0]
 
     def evaluate(self, model, X_test, y_test, criterion):
-        model.eval()    #this ensures that the dropout layers are not running during evaluation
-        total_loss, correct = 0.0, 0
+        model.eval()
         with torch.no_grad():
-            for X, y in zip(X_test, y_test):
-                # X, y = X.to(DEVICE), y.to(DEVICE).squeeze().long()
-                # y = y.squeeze().long()
-                total_loss += criterion(out, y).item() * X.size(0)
-                correct    += (out.argmax(1) == y).sum().item()
-        n = X_test.shape[0]
-        return total_loss / n, correct / n
+
+            output = model(X_test)
+
+            loss = criterion(output, y_test)
+            correct = (output.argmax(dim=1) == y_test).sum().item()
+
+            n = X_test.shape[0]
+            return loss.item(), correct / n
     
     def run_experiment(self, model, X, y, num_epochs):
         criterion = nn.CrossEntropyLoss() #this loss converts the real values into probabilites in it first
@@ -223,7 +234,7 @@ class GradientBoostingModel:
         model = GradientBoostingClassifier(**self.params)
         pipeline = model
 
-        scoring = ["accuracy", "precision", "recall", "f1", "roc_auc"]
+        scoring = ["accuracy", "precision", "recall", "f1", "roc_auc_ovr"]
         
         results = {}
         for metric in scoring:
@@ -238,7 +249,7 @@ class GradientBoostingModel:
         y: np.ndarray,
         param_grid: Dict,
         cv: int = 3,
-        scoring: str = "roc_auc",
+        scoring: str = "roc_auc_ovr",
     ) -> Dict:
         pipeline = GradientBoostingClassifier(**self.params)
         grid_search = GridSearchCV(pipeline, param_grid = param_grid, scoring = scoring, cv = cv)
