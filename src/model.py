@@ -27,8 +27,8 @@ class BasicCNN(nn.Module):
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            # nn.Linear(128 * 7 * 7, 512),
-            nn.Linear(3136, 512),
+            nn.Linear(128 * 56 * 56, 512),
+            # nn.Linear(3136, 512),
             nn.ReLU(),
             nn.Dropout(p=dropout_p),
             nn.Linear(512, 256),
@@ -47,25 +47,32 @@ class BasicCNN(nn.Module):
 
         train_loader = DataLoader(
             TensorDataset(X_train, y_train),
-            batch_size=32,
+            batch_size=64,
             shuffle=True
         )
-        
-
-        print("training")
-        model.train()
-
         total_loss = 0.0
 
-        print("compute loss")
-        optimizer.zero_grad()
-        loss = criterion(model(X_train), y_train)
+        for i, (X, y) in enumerate(train_loader):
 
-        print("backward pass")
-        loss.backward()
-        print("optimize step")
-        optimizer.step()
-        return loss.item()
+            print(f"batch {i}")
+            # print("training")
+            model.train()
+
+
+            # print("compute loss")
+            optimizer.zero_grad()
+            loss = criterion(model(X), y)
+
+            # print("backward pass")
+            loss.backward()
+            # print("optimize step")
+            optimizer.step()
+
+            total_loss += loss.item()
+
+
+        return total_loss / len(train_loader)
+
 
 
     def evaluate(self, model, X_test, y_test, criterion):
@@ -90,8 +97,8 @@ class BasicCNN(nn.Module):
 
         X_train = torch.tensor(X_train).float()
         X_test = torch.tensor(X_test).float()
-        y_train = torch.tensor(y_train).float()
-        y_test = torch.tensor(y_test).float()
+        y_train = torch.tensor(y_train).long()
+        y_test = torch.tensor(y_test).long()
 
         # full_dataset = TensorDataset(X, y)
         # train_size = int(0.8 * len(full_dataset)) # change train test split here

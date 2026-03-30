@@ -18,16 +18,16 @@ train_ids, train_images, train_labels, train_tabular, metadata = loader.get_canc
 EPOCHS=1
 num_classes=7
 
-tabular_model = GradientBoostingModel(
-    max_depth=1, 
-    learning_rate=0.01,
-    n_estimators=200,
-    subsample=0.6,
-)
-X_train, X_test, y_train, y_test = tabular_model.make_train_test_split(train_tabular, train_labels)
-tabular_model.fit(X_train, y_train)
-metrics = tabular_model.evaluate(X_test, y_test)
-print(metrics)
+# tabular_model = GradientBoostingModel(
+#     max_depth=1, 
+#     learning_rate=0.01,
+#     n_estimators=200,
+#     subsample=0.6,
+# )
+# X_train, X_test, y_train, y_test = tabular_model.make_train_test_split(train_tabular, train_labels)
+# tabular_model.fit(X_train, y_train)
+# metrics = tabular_model.evaluate(X_test, y_test)
+# print(metrics)
 
 # tune_dict = tabular_model.tune_hyperparameters(train_tabular, train_labels, param_grid={
 #     'max_depth': [1, 3, 5],
