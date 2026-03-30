@@ -28,7 +28,6 @@ class BasicCNN(nn.Module):
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(128 * 56 * 56, 512),
-            # nn.Linear(3136, 512),
             nn.ReLU(),
             nn.Dropout(p=dropout_p),
             nn.Linear(512, 256),
@@ -58,7 +57,6 @@ class BasicCNN(nn.Module):
             # print("training")
             model.train()
 
-
             # print("compute loss")
             optimizer.zero_grad()
             loss = criterion(model(X), y)
@@ -80,7 +78,6 @@ class BasicCNN(nn.Module):
         with torch.no_grad():
 
             output = model(X_test)
-
             loss = criterion(output, y_test)
             correct = (output.argmax(dim=1) == y_test).sum().item()
 
@@ -88,7 +85,7 @@ class BasicCNN(nn.Module):
         return loss.item(), correct / n
     
     def run_experiment(self, model, X, y, num_epochs):
-        criterion = nn.CrossEntropyLoss() #this loss converts the real values into probabilites in it first
+        criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
         history = {"train_loss": [], "test_loss": [], "test_acc": []}
 
