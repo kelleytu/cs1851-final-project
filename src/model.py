@@ -85,7 +85,7 @@ class BasicCNN(nn.Module):
             correct = (output.argmax(dim=1) == y_test).sum().item()
 
             n = X_test.shape[0]
-            return loss.item(), correct / n
+        return loss.item(), correct / n
     
     def run_experiment(self, model, X, y, num_epochs):
         criterion = nn.CrossEntropyLoss() #this loss converts the real values into probabilites in it first
