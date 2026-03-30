@@ -253,7 +253,7 @@ class GradientBoostingModel:
         y: np.ndarray,
         param_grid: Dict,
         cv: int = 3,
-        scoring: str = "roc_auc_ovr",
+        scoring: str = "f1_macro",
     ) -> Dict:
         pipeline = GradientBoostingClassifier(**self.params)
         grid_search = GridSearchCV(pipeline, param_grid = param_grid, scoring = scoring, cv = cv)
