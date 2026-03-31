@@ -48,8 +48,8 @@ X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, 
     stratify=train_labels)
 
 tune_dict = tabular_model.tune_hyperparameters(X_tab_train, y_train, param_grid={
-    'max_depth': [1, 2, 3, 4],
-    'learning_rate': [0.01, 0.05, 0.1],
+    'max_depth': [1, 2, 3, 4, 5],
+    'learning_rate': [0.01, 0.05, 0.1, 0.15],
     'n_estimators': [100, 200, 500, 800],
     'subsample': [0.6, 0.8, 1.0]
 })
