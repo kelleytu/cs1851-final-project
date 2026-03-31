@@ -1,4 +1,4 @@
-from preprocessing import FPDataLoader
+from preprocessing import FPDataLoader, preprocess_images
 from model import BasicCNN
 from model import GradientBoostingModel
 import matplotlib.pyplot as plt
@@ -9,6 +9,17 @@ import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    mean_squared_error,
+    mean_absolute_error,
+    r2_score,
+)
 
 
 
@@ -16,45 +27,62 @@ loader = FPDataLoader()
 train_ids, train_images, train_labels, train_tabular, metadata = loader.get_cancer_data()
 # loader.show_sample_imgs(train_images=train_images, train_labels=train_labels)
 
-# print(train_ids[:5])
+# preprocess_images(train_images[:5])
 
 EPOCHS=1
 num_classes=7
 
-# tabular_model = GradientBoostingModel()
-# X_train, X_test, y_train, y_test = tabular_model.make_train_test_split(train_tabular, train_labels)
+tabular_model = GradientBoostingModel(
+    max_depth=3,
+    learning_rate=0.1,
+    n_estimators=500,
+    subsample=0.8
+)
+X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, y_test = train_test_split(
+    train_images, 
+    train_tabular, 
+    train_ids, 
+    train_labels,
+    test_size=0.2,
+    random_state=42, 
+    stratify=train_labels)
 
-# tune_dict = tabular_model.tune_hyperparameters(X_train, y_train, param_grid={
-#     'max_depth': [1, 2, 3, 4],
-#     'learning_rate': [0.01, 0.05, 0.1],
-#     'n_estimators': [100, 200, 500, 800],
-#     'subsample': [0.6, 0.8, 1.0]
-# })
-# print("\nBest hyperparameters:", tune_dict["best_params"], "\n")
+tune_dict = tabular_model.tune_hyperparameters(X_tab_train, y_train, param_grid={
+    'max_depth': [1, 2, 3, 4],
+    'learning_rate': [0.01, 0.05, 0.1],
+    'n_estimators': [100, 200, 500, 800],
+    'subsample': [0.6, 0.8, 1.0]
+})
+print("\nBest hyperparameters:", tune_dict["best_params"], "\n")
 
-# tabular_model.fit(X_train, y_train)
-# tabular_probas = tabular_model.predict(X_test, return_proba=True)
-# metrics = tabular_model.evaluate(X_test, y_test)
-# print(pd.Series(metrics))
+tabular_model.fit(X_tab_train, y_train)
+tabular_probs = tabular_model.predict(X_tab_test, return_proba=True)
+metrics = tabular_model.evaluate(X_tab_test, y_test)
+print(pd.Series(metrics))
 
 model_base = BasicCNN(num_classes)
-history, metrics = model_base.run_experiment(model_base, train_images, train_labels, EPOCHS)
+history, metrics, cnn_probs = model_base.run_experiment(
+    model_base, 
+    X_train=X_img_train, 
+    X_test=X_img_test, 
+    y_train=y_train, 
+    y_test=y_test, 
+    num_epochs=EPOCHS)
+# probs for ensemble
 print(history)
 print(pd.Series(metrics))
 
+cnn_probs = cnn_probs.numpy()
+# np.savetxt('cnn_probs.csv', cnn_probs, delimiter=',') 
+# cnn_probs = np.loadtxt('cnn_probs.csv', delimiter=',')
 
-
-# cat_model = CatBoostModel()
-# X_train, X_test, y_train, y_test = cat_model.make_train_test_split(train_tabular, train_labels)
-# tune_cat = cat_model.tune_hyperparameters(X_train, y_train, param_grid = {
-#     'depth' : [1, 2, 3, 4],
-#     'learning_rate' : [0.01, 0.05, 0.1],
-#     'n_estimators': [100, 300, 500],
-#     'l2_leaf_reg' : [1.0, 3.0, 7.0]
-# }, cv = 3, scoring = "f1_macro")
-# print("\nBest hyperparameters:", tune_cat["best_params"], "\n")
-# cat_model.fit(X_train, y_train)
-# cat_probas = cat_model.predict(X_test, return_proba=True)
-# metrics_cat = cat_model.evaluate(X_test, y_test)
-# print(pd.Series(metrics_cat))
+alpha = 0.6
+combined_probs = alpha * tabular_probs + (1 - alpha) * cnn_probs
+combined_preds = np.argmax(combined_probs, axis = 1)
+print("\nEnsemble Metrics:")
+print("Accuracy:", accuracy_score(y_test, combined_preds))
+print("Precision:", precision_score(y_test, combined_preds, zero_division = 0, average = "macro"))
+print("Recall:", recall_score(y_test, combined_preds, zero_division = 0, average = "macro"))
+print("F1:", f1_score(y_test, combined_preds, zero_division = 0, average = "macro"))
+print("ROC-AUC", roc_auc_score(y_test, combined_probs, average = "macro", multi_class = "ovr"))
 

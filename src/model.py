@@ -47,7 +47,7 @@ class BasicCNN(nn.Module):
         train_loader = DataLoader(
             TensorDataset(X_train, y_train),
             batch_size=batch_size,
-            shuffle=True
+            # shuffle=True
         )
 
         # num_batches = (X_train.shape[0] + batch_size - 1) // batch_size
@@ -64,8 +64,8 @@ class BasicCNN(nn.Module):
             optimizer.zero_grad()
             logits = model(X)
 
-            probs = torch.nn.functional.softmax(logits, dim=1)
-            prob_list.append(probs)
+            # probs = torch.nn.functional.softmax(logits, dim=1)
+            # prob_list.append(probs.cpu())
 
             loss = criterion(logits, y)
 
@@ -76,18 +76,23 @@ class BasicCNN(nn.Module):
 
             total_loss += loss.item()
 
-        prob_list = torch.cat(prob_list, dim=0)
+        # prob_list = torch.cat(prob_list, dim=0)
 
-        print(prob_list.size())
+        # print(prob_list.size())
         # flatten if needed. should be size X_train, num_classes
 
-        return total_loss / len(train_loader), probs
+        # return total_loss / len(train_loader), probs
+        return total_loss / len(train_loader)
+
 
 
 
     def evaluate(self, model, X_test, y_test, criterion):
+
+
         model.eval()
         with torch.no_grad():
+
 
             logits = model(X_test)
             y_proba = torch.nn.functional.softmax(logits, dim=1)
@@ -109,15 +114,15 @@ class BasicCNN(nn.Module):
         }
         metrics["roc_auc"] = roc_auc_score(y_test, y_proba, average = avg, multi_class = "ovr")
 
-        return loss.item(), correct / n, metrics
+        return loss.item(), correct / n, metrics, y_proba
     
-    def run_experiment(self, model, X, y, num_epochs):
+    def run_experiment(self, model, X_train, X_test, y_train, y_test, num_epochs):
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
         history = {"train_loss": [], "test_loss": [], "test_acc": []}
 
-        X = np.transpose(X, (0, 3, 1, 2))
-        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)   
+        X_train = np.transpose(X_train, (0, 3, 1, 2)) # transposed images here
+        X_test = np.transpose(X_test, (0, 3, 1, 2)) # transposed images here
 
         X_train = torch.tensor(X_train).float()
         X_test = torch.tensor(X_test).float()
@@ -130,8 +135,8 @@ class BasicCNN(nn.Module):
         # train_dataset, test_dataset = random_split(TensorDataset(X, y), [train_size, test_size], generator=torch.Generator().manual_seed(42))     
 
         for epoch in range(1, num_epochs + 1):
-            tr_loss, prob_list = model.train_one_epoch(model, X_train, y_train, optimizer, criterion, batch_size=64) # probs for ensemble model
-            te_loss, te_acc, metrics = model.evaluate(model, X_test, y_test, criterion)
+            tr_loss = model.train_one_epoch(model, X_train, y_train, optimizer, criterion, batch_size=64) # probs for ensemble model
+            te_loss, te_acc, metrics, probs = model.evaluate(model, X_test, y_test, criterion)
             history["train_loss"].append(tr_loss)
             history["test_loss"].append(te_loss)
             history["test_acc"].append(te_acc)
@@ -139,7 +144,7 @@ class BasicCNN(nn.Module):
                 print(f"  Epoch {epoch:3d} | train loss {tr_loss:.4f} | "
                     f"test loss {te_loss:.4f} | test acc {te_acc:.3f}")
 
-        return history, metrics
+        return history, metrics, probs
 
     # def plot_results(self, model, num_epochs):
     #     epochs  = range(1, num_epochs + 1)
@@ -302,209 +307,3 @@ class GradientBoostingModel:
     #     plot_tree(tree, feature_names = self.feature_names, filled = True)
     #     plt.title(f"Tree {tree_index} from Gradient Boosting Ensemble")
     #     plt.show()
-
-
-
-
-
-
-
-
-
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from typing import Dict, Optional, Union
-
-# from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, StratifiedKFold
-# from sklearn.metrics import (
-#     accuracy_score,
-#     precision_score,
-#     recall_score,
-#     f1_score,
-#     roc_auc_score,
-# )
-# from catboost import CatBoostClassifier
-# from sklearn.utils.class_weight import compute_class_weight
-
-
-# class CatBoostModel:
-#     def __init__(
-#         self,
-#         depth: int = 6,
-#         learning_rate: float = 0.05,
-#         n_estimators: int = 200,
-#         l2_leaf_reg: float = 3.0,
-#         random_state: int = 42,
-#         verbose: bool = False,
-#         cat_features: Optional[list] = None,
-#         auto_class_weights: Optional[str] = None,   # e.g. "Balanced"
-#     ):
-#         self.params = {
-#             "depth": depth,
-#             "learning_rate": learning_rate,
-#             "n_estimators": n_estimators,
-#             "l2_leaf_reg": l2_leaf_reg,
-#             "random_seed": random_state,
-#             "loss_function": "MultiClass",
-#             "eval_metric": "TotalF1",
-#             "verbose": verbose,
-#         }
-
-#         # optional: CatBoost can handle categorical columns directly
-#         self.cat_features = cat_features
-
-#         # optional alternative to manual class_weights
-#         if auto_class_weights is not None:
-#             self.params["auto_class_weights"] = auto_class_weights
-
-#         self.model = None
-#         self.feature_names = None
-
-#     def make_train_test_split(
-#         self,
-#         X: np.ndarray,
-#         y: np.ndarray,
-#         test_size: float = 0.2,
-#         random_state: int = 42,
-#     ):
-#         self.feature_names = [f"feature_{i}" for i in range(X.shape[1])]
-#         return train_test_split(
-#             X, y,
-#             test_size=test_size,
-#             random_state=random_state,
-#             stratify=y
-#         )
-
-#     def fit(self, X_train: np.ndarray, y_train: np.ndarray, verbose: bool = True):
-#         params = self.params.copy()
-
-#         # If auto_class_weights not provided, compute explicit class weights
-#         if "auto_class_weights" not in params:
-#             classes = np.unique(y_train)
-#             weights = compute_class_weight(
-#                 class_weight="balanced",
-#                 classes=classes,
-#                 y=y_train
-#             )
-#             params["class_weights"] = {cls: w for cls, w in zip(classes, weights)}
-
-#         self.model = CatBoostClassifier(**params)
-
-#         self.model.fit(
-#             X_train,
-#             y_train,
-#             cat_features=self.cat_features
-#         )
-
-#         if verbose:
-#             print("CatBoost model fit successfully.")
-
-#     def predict(
-#         self,
-#         X: np.ndarray,
-#         return_proba: bool = False
-#     ) -> Union[np.ndarray, np.ndarray]:
-#         if self.model is None:
-#             raise ValueError("Model has not been fit yet.")
-
-#         if return_proba:
-#             return self.model.predict_proba(X)
-#         return self.model.predict(X).reshape(-1)
-
-#     def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Dict:
-#         y_pred = self.predict(X_test, return_proba=False)
-
-#         if len(np.unique(y_test)) == 2:
-#             avg = "binary"
-#             y_proba = self.predict(X_test, return_proba=True)[:, 1]
-#         else:
-#             avg = "macro"
-#             y_proba = self.predict(X_test, return_proba=True)
-
-#         metrics = {
-#             "accuracy": accuracy_score(y_test, y_pred),
-#             "precision": precision_score(y_test, y_pred, zero_division=0, average=avg),
-#             "recall": recall_score(y_test, y_pred, zero_division=0, average=avg),
-#             "f1": f1_score(y_test, y_pred, zero_division=0, average=avg),
-#             "roc_auc": np.nan,
-#         }
-
-#         if len(np.unique(y_test)) == 2:
-#             metrics["roc_auc"] = roc_auc_score(y_test, y_proba)
-#         else:
-#             metrics["roc_auc"] = roc_auc_score(
-#                 y_test, y_proba,
-#                 average="macro",
-#                 multi_class="ovr"
-#             )
-
-#         return metrics
-
-#     def cross_validate(
-#         self,
-#         X: np.ndarray,
-#         y: np.ndarray,
-#         cv: int = 5,
-#     ) -> Dict:
-#         model = CatBoostClassifier(**self.params)
-
-#         splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
-
-#         if len(np.unique(y)) == 2:
-#             scoring_dict = {
-#                 "accuracy": "accuracy",
-#                 "precision": "precision",
-#                 "recall": "recall",
-#                 "f1": "f1",
-#                 "roc_auc": "roc_auc",
-#             }
-#         else:
-#             scoring_dict = {
-#                 "accuracy": "accuracy",
-#                 "precision": "precision_macro",
-#                 "recall": "recall_macro",
-#                 "f1": "f1_macro",
-#                 "roc_auc": "roc_auc_ovr",
-#             }
-
-#         results = {}
-#         for metric_name, scorer in scoring_dict.items():
-#             scores = cross_val_score(model, X, y, cv=splitter, scoring=scorer)
-#             results[metric_name] = {
-#                 "mean": np.mean(scores),
-#                 "std": np.std(scores),
-#                 "scores": scores,
-#             }
-
-#         return results
-
-#     def tune_hyperparameters(
-#         self,
-#         X: np.ndarray,
-#         y: np.ndarray,
-#         param_grid: Dict,
-#         cv: int = 3,
-#         scoring: str = "f1_macro",
-#     ) -> Dict:
-#         splitter = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
-
-#         model = CatBoostClassifier(**self.params)
-
-#         grid_search = GridSearchCV(
-#             estimator=model,
-#             param_grid=param_grid,
-#             scoring=scoring,
-#             cv=splitter,
-#             n_jobs=-1,
-#         )
-
-#         grid_search.fit(X, y)
-
-#         self.model = grid_search.best_estimator_
-#         self.params.update(grid_search.best_params_)
-
-#         return {
-#             "best_params": grid_search.best_params_,
-#             "best_score": grid_search.best_score_,
-#             "cv_results": grid_search.cv_results_,
-#         }

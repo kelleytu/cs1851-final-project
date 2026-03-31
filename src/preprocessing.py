@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+import cv2
 
 class FPDataLoader:
     def __init__(self):
@@ -29,3 +30,29 @@ class FPDataLoader:
         plt.tight_layout()
         plt.show()
 
+def preprocess_images(images, power=6):
+    # normalization
+    # gray scale
+    for img in images:
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # now in opencv chn order
+        
+        cv2.imshow("original", img)
+
+        # from paper 
+        img = img.astype('float32')
+        img_power = np.power(img, power)
+        rgb_vec = np.power(np.mean(img_power, (0,1)), 1/power)
+        rgb_norm = np.sqrt(np.sum(np.power(rgb_vec, 2.0)))
+        rgb_vec = rgb_vec/rgb_norm
+        rgb_vec = 1/(rgb_vec*np.sqrt(3))
+        img = np.multiply(img, rgb_vec)
+
+        img = np.clip(img, 0, 255).astype(np.uint8)
+        # img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2RGB)
+        cv2.imshow("color const", img)
+
+        cv2.waitKey(0)
+
+
+   
+    cv2.destroyAllWindows()
