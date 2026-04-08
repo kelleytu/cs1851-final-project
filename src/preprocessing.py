@@ -19,6 +19,19 @@ class FPDataLoader:
         print("Tabular Shape:", train_tabular.shape)
         return train_ids, train_images, train_labels, train_tabular, metadata
 
+
+    def get_test_cancer_data(self):
+        test_ids = np.load("../data/test1_ids.npy", allow_pickle=True)
+        test_images = np.load("../data/test1_images.npy", allow_pickle=True)
+        # train_labels = np.load("../data/test1_labels.npy", allow_pickle=True)
+        test_tabular = np.load("../data/test1_tabular.npy", allow_pickle=True)
+        metadata = np.load("../data/metadata.npy", allow_pickle=True)
+        print("IDs Shape:", train_ids.shape)
+        print("Images Shape:", train_images.shape)
+        print("Labels Shape:", train_labels.shape)
+        print("Tabular Shape:", train_tabular.shape)
+        return test_ids, test_images, test_tabular, metadata
+
     def show_sample_imgs(self, train_images, train_labels):
         cancer_classes = np.unique(train_labels)
         for i, cancer_type in enumerate(cancer_classes):
@@ -30,13 +43,19 @@ class FPDataLoader:
         plt.tight_layout()
         plt.show()
 
-def preprocess_images(images, power=6):
+def preprocess_images(images, power=6, show=False):
     # normalization
     # gray scale
+    print("images shape")
+    print(images.shape)
+
+    preprocess = []
+
     for img in images:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # now in opencv chn order
         
-        cv2.imshow("original", img)
+        if show:
+            cv2.imshow("original", img)
 
         # from paper 
         img = img.astype('float32')
@@ -49,10 +68,17 @@ def preprocess_images(images, power=6):
 
         img = np.clip(img, 0, 255).astype(np.uint8)
         # img = cv2.cvtColor(np.array(img), cv2.COLOR_BGR2RGB)
-        cv2.imshow("color const", img)
+        if show:
+            cv2.imshow("color const", img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
-        cv2.waitKey(0)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        preprocess.append(img)
+    
+    preprocess = np.array(preprocess)
+    print("preprocess shape")
+    print(preprocess.shape)
 
+    return preprocess
 
-   
-    cv2.destroyAllWindows()

@@ -57,10 +57,7 @@ class BasicCNN(nn.Module):
         for i, (X, y) in enumerate(train_loader):
 
             print(f"batch {i}")
-            # print("training")
             model.train()
-
-            # print("compute loss")
             optimizer.zero_grad()
             logits = model(X)
 
