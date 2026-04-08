@@ -1,4 +1,4 @@
-from preprocessing import FPDataLoader, preprocess_images
+from preprocessing import *
 from model import BasicCNN
 from model import GradientBoostingModel
 import matplotlib.pyplot as plt
@@ -22,26 +22,28 @@ from sklearn.metrics import (
 )
 import joblib
 
+num_classes=7
 
 loader = FPDataLoader()
 test_ids, test_images, test_tabular, metadata = loader.get_test_cancer_data()
 
-test_images = preprocess_images(test_images[:5])
+test_images = preprocess_images(test_images)
+test_images = change_img_format(test_images)
 
-print("TESTING STUFF HERE")
+# load and evaluate models
 tab_model = joblib.load("tab_model.pkl")
 tabular_probs = tab_model.predict(test_tabular, return_proba = True)
-
-
+ 
 
 state_dict = torch.load("cnn_weights.pth", weights_only=True)
 cnn_model = BasicCNN(num_classes)
 cnn_model.load_state_dict(state_dict)
 
-cnn_model.eval(test_images)
+
+cnn_model.eval()
 with torch.no_grad():
-    logits = model(test_images)
-    cnn)probs = torch.nn.functional.softmax(logits, dim=1)
+    logits = cnn_model(test_images)
+    cnn_probs = torch.nn.functional.softmax(logits, dim=1).numpy()
 
 
 

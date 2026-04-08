@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import cv2
+import torch
 
 class FPDataLoader:
     def __init__(self):
@@ -26,10 +27,9 @@ class FPDataLoader:
         # train_labels = np.load("../data/test1_labels.npy", allow_pickle=True)
         test_tabular = np.load("../data/test1_tabular.npy", allow_pickle=True)
         metadata = np.load("../data/metadata.npy", allow_pickle=True)
-        print("IDs Shape:", train_ids.shape)
-        print("Images Shape:", train_images.shape)
-        print("Labels Shape:", train_labels.shape)
-        print("Tabular Shape:", train_tabular.shape)
+        print("IDs Shape:", test_ids.shape)
+        print("Images Shape:", test_images.shape)
+        print("Tabular Shape:", test_tabular.shape)
         return test_ids, test_images, test_tabular, metadata
 
     def show_sample_imgs(self, train_images, train_labels):
@@ -82,3 +82,8 @@ def preprocess_images(images, power=6, show=False):
 
     return preprocess
 
+def change_img_format(images):
+    images = np.transpose(images, (0, 3, 1, 2))
+    images = torch.tensor(images).float()
+
+    return images

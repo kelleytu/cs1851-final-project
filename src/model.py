@@ -118,6 +118,7 @@ class BasicCNN(nn.Module):
         optimizer = optim.Adam(model.parameters(), lr=1e-3)
         history = {"train_loss": [], "test_loss": [], "test_acc": []}
 
+        # later change to use preprocessing method?
         X_train = np.transpose(X_train, (0, 3, 1, 2)) # transposed images here
         X_test = np.transpose(X_test, (0, 3, 1, 2)) # transposed images here
 
