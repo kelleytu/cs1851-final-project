@@ -24,7 +24,6 @@ import joblib
 
 
 loader = FPDataLoader()
-# train_ids, train_images, train_labels, train_tabular, metadata = loader.get_cancer_data()
 train_ids, train_images, train_labels, train_tabular, metadata = loader.get_cancer_data()
 # loader.show_sample_imgs(train_images=train_images, train_labels=train_labels)
 

@@ -27,7 +27,7 @@ class BasicCNN(nn.Module):
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(128 * 56 * 56, 512),
+            nn.Linear(128 * 51 * 51, 512), # 56 for size 224x224
             nn.ReLU(),
             nn.Dropout(p=dropout_p),
             nn.Linear(512, 256),
