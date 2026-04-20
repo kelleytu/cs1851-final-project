@@ -11,5 +11,4 @@ class FusionDataset(Dataset):
         return len(self.X_image)
 
     def __getitem__(self, index):
-
-        return self.X_image[index], self.X_tabular[index]
+        return self.X_image[index], self.X_tabular[index], self.y[index]

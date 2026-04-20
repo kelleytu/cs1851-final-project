@@ -50,7 +50,7 @@ class FusionModel(nn.Module):
             nn.ReLU(),
         )
         self.classifier = nn.Sequential(
-            nn.Linear(64 * 51 * 51, 512), 
+            nn.Linear(802880, 512), 
             nn.ReLU(),
             nn.Dropout(p=dropout_p),
             nn.Linear(512, 256),
@@ -70,6 +70,7 @@ class FusionModel(nn.Module):
 
         perm = torch.randperm(X_img.size(0))
         X_img = X_img[perm]
+        X_tab = X_tab[perm]
         y = y[perm]
         
         train_loader = DataLoader(
