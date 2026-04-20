@@ -35,7 +35,7 @@ tab_model = joblib.load("tab_model.pkl")
 tabular_probs = tab_model.predict(test_tabular, return_proba = True)
  
 
-state_dict = torch.load("cnn_weights.pth", weights_only=True)
+state_dict = torch.load("cnn_weights_no_erosion.pth", weights_only=True)
 cnn_model = BasicCNN(num_classes)
 cnn_model.load_state_dict(state_dict)
 
