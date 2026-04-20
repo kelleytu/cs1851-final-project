@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from preprocessing import FPDataLoader
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
-from utils import *
+from utils import FusionDataset
 import matplotlib.pyplot as plt
 # import seaborn as sns
 
