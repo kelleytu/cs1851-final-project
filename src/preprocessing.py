@@ -69,7 +69,7 @@ def preprocess_images(images, power=6, show=False):
         closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
         eroded = cv2.erode(closed, kernel, iterations=1)
 
-        lines = cv2.HoughLinesP(eroded, cv2.HOUGH_PROBABILISTIC, np.pi / 720, 35, 1, 5, 16) # from paper
+        lines = cv2.HoughLinesP(closed, cv2.HOUGH_PROBABILISTIC, np.pi / 720, 35, 1, 5, 16) # from paper
         # print(f"num lines found {lines}")
         if lines is not None:
             filled, line_mask, dilated = remove_fill_lines(cropped, gray, lines, 1, 300, 3)

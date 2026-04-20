@@ -32,12 +32,12 @@ train_images = preprocess_images(train_images)
 EPOCHS=1
 num_classes=7
 
-tabular_model = GradientBoostingModel(
-    max_depth=3,
-    learning_rate=0.1,
-    n_estimators=500,
-    subsample=0.8
-)
+# tabular_model = GradientBoostingModel(
+#     max_depth=3,
+#     learning_rate=0.1,
+#     n_estimators=500,
+#     subsample=0.8
+# )
 X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, y_test = train_test_split(
     train_images, 
     train_tabular, 
@@ -55,13 +55,13 @@ X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, 
 # })
 # print("\nBest hyperparameters:", tune_dict["best_params"], "\n")
 
-tabular_model.fit(X_tab_train, y_train)
-tabular_probs = tabular_model.predict(X_tab_test, return_proba=True)
-metrics = tabular_model.evaluate(X_tab_test, y_test)
-print(pd.Series(metrics))
+# tabular_model.fit(X_tab_train, y_train)
+# tabular_probs = tabular_model.predict(X_tab_test, return_proba=True)
+# metrics = tabular_model.evaluate(X_tab_test, y_test)
+# print(pd.Series(metrics))
 
-print("SAVING TABULAR MODEL")
-joblib.dump(tabular_model, "tab_model.pkl")
+# print("SAVING TABULAR MODEL")
+# joblib.dump(tabular_model, "tab_model.pkl")
 
 model_base = BasicCNN(num_classes)
 history, metrics, cnn_probs = model_base.run_experiment(
@@ -76,21 +76,21 @@ print(history)
 print(pd.Series(metrics))
 
 print("SAVING CNN MODEL")
-torch.save(model_base.state_dict(), "cnn_weights.pth")
+torch.save(model_base.state_dict(), "cnn_weights_no_erosion.pth")
 
-cnn_probs = cnn_probs.numpy()
-# np.savetxt('cnn_probs.csv', cnn_probs, delimiter=',') 
-# cnn_probs = np.loadtxt('cnn_probs.csv', delimiter=',')
+# cnn_probs = cnn_probs.numpy()
+# # np.savetxt('cnn_probs.csv', cnn_probs, delimiter=',') 
+# # cnn_probs = np.loadtxt('cnn_probs.csv', delimiter=',')
 
-alpha = 0.6
-combined_probs = alpha * tabular_probs + (1 - alpha) * cnn_probs
-combined_preds = np.argmax(combined_probs, axis = 1)
+# alpha = 0.6
+# combined_probs = alpha * tabular_probs + (1 - alpha) * cnn_probs
+# combined_preds = np.argmax(combined_probs, axis = 1)
 
 
-print("\nEnsemble Metrics:")
-print("Accuracy:", accuracy_score(y_test, combined_preds))
-print("Precision:", precision_score(y_test, combined_preds, zero_division = 0, average = "macro"))
-print("Recall:", recall_score(y_test, combined_preds, zero_division = 0, average = "macro"))
-print("F1:", f1_score(y_test, combined_preds, zero_division = 0, average = "macro"))
-print("ROC-AUC", roc_auc_score(y_test, combined_probs, average = "macro", multi_class = "ovr"))
+# print("\nEnsemble Metrics:")
+# print("Accuracy:", accuracy_score(y_test, combined_preds))
+# print("Precision:", precision_score(y_test, combined_preds, zero_division = 0, average = "macro"))
+# print("Recall:", recall_score(y_test, combined_preds, zero_division = 0, average = "macro"))
+# print("F1:", f1_score(y_test, combined_preds, zero_division = 0, average = "macro"))
+# print("ROC-AUC", roc_auc_score(y_test, combined_probs, average = "macro", multi_class = "ovr"))
 
