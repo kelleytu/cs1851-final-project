@@ -164,12 +164,12 @@ class FusionModel(nn.Module):
 
         return history, metrics, probs
 
-
+# may need to run open "/Applications/Python 3.12/Install Certificates.command" in terminal
 from torchvision import models
 class ImageClassifier(nn.Module):
     def __init__(self, num_classes=7, dropout=0.3):
         super().__init__()
-        res_mod = models.resnet18(weights=None)
+        res_mod = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         in_features = res_mod.fc.in_features
         res_mod.fc = nn.Sequential(
             nn.Dropout(p=dropout),
@@ -180,39 +180,34 @@ class ImageClassifier(nn.Module):
     def forward(self, x):
         return self.image_classifier(x)
 
-    def train_one_epoch(self, model, X_img, X_tab, y, optimizer, criterion, batch_size):
-
+    def train_one_epoch(self, X_img, y, optimizer, criterion, batch_size):
         perm = torch.randperm(X_img.size(0))
         X_img = X_img[perm]
         y = y[perm]
         
         train_loader = DataLoader(
-            FusionDataset(X_img, X_tab, y),
+            TensorDataset(X_img, y),
             batch_size=batch_size,
             shuffle=False
         )
 
         # num_batches = (.shape[0] + batch_size - 1) // batch_size
+        self.train()
         total_loss = 0.0
-        prob_list = []
 
-        for i, (X_img, X_tab, y) in enumerate(train_loader):
-
+        for i, (X_img, y) in enumerate(train_loader):
             print(f"batch {i}")
-            model.train()
             optimizer.zero_grad()
-            logits = model(X_img, X_tab)
+            logits = self(X_img)
 
             # probs = torch.nn.functional.softmax(logits, dim=1)
             # prob_list.append(probs.cpu())
-
             loss = criterion(logits, y)
 
             # print("backward pass")
             loss.backward()
             # print("optimize step")
             optimizer.step()
-
             total_loss += loss.item()
 
         # prob_list = torch.cat(prob_list, dim=0)
@@ -224,19 +219,15 @@ class ImageClassifier(nn.Module):
         return total_loss / len(train_loader)
 
 
-    def evaluate(self, model, X_img, X_tab, y, criterion):
-        model.eval()
+    def evaluate(self, X_img, y, criterion):
+        self.eval()
         with torch.no_grad():
-
-
-            logits = model(X_img, X_tab)
+            logits = self(X_img)
             y_proba = torch.nn.functional.softmax(logits, dim=1)
 
-            
             loss = criterion(logits, y)
             y_pred = logits.argmax(dim=1)
             correct = (y_pred == y).sum().item()
-
             n = X_img.shape[0]
 
         avg = "macro"
@@ -251,23 +242,23 @@ class ImageClassifier(nn.Module):
 
         return loss.item(), correct / n, metrics, y_proba
     
-    def run_experiment(self, model, X_img, X_test, y_train, y_test, num_epochs):
+    def run_experiment(self, X_train, X_test, y_train, y_test, num_epochs):
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=1e-3)
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
         history = {"train_loss": [], "test_loss": [], "test_acc": []}
 
         # later change to use preprocessing method?
         X_train = np.transpose(X_train, (0, 3, 1, 2)) # transposed images here
         X_test = np.transpose(X_test, (0, 3, 1, 2)) # transposed images here
 
-        X_train = torch.tensor().float()
+        X_train = torch.tensor(X_train).float()
         X_test = torch.tensor(X_test).float()
         y_train = torch.tensor(y_train).long()
         y_test = torch.tensor(y_test).long()
 
         for epoch in range(1, num_epochs + 1):
-            tr_loss = model.train_one_epoch(model, y_train, optimizer, criterion, batch_size=64) # probs for ensemble model
-            te_loss, te_acc, metrics, probs = model.evaluate(model, X_test, y_test, criterion)
+            tr_loss = self.train_one_epoch(X_train, y_train, optimizer, criterion, batch_size=64) # probs for ensemble model
+            te_loss, te_acc, metrics, probs = self.evaluate(X_test, y_test, criterion)
             history["train_loss"].append(tr_loss)
             history["test_loss"].append(te_loss)
             history["test_acc"].append(te_acc)

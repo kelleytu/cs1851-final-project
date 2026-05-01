@@ -36,42 +36,45 @@ X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, 
     random_state=42, 
     stratify=train_labels)
 
-train_images = preprocess_images(train_images)
+# train_images = preprocess_images(train_images)
+X_img_train = preprocess_images(X_img_train)
+X_img_test = preprocess_images(X_img_test)
 
 EPOCHS=1
 num_classes=7
 
-fusion_model = FusionModel(num_classes)
+# fusion_model = FusionModel(num_classes)
 
-history, metrics, model_probs = fusion_model.run_experiment(
-    model=fusion_model,
-    X_train_img=X_img_train,
-    X_train_tab=X_tab_train,
-    X_test_img=X_img_test,
-    X_test_tab=X_tab_test,
-    y_train=y_train,
-    y_test=y_test,
-    num_epochs=EPOCHS
-)
-print(history)
-print(pd.Series(metrics))
-
-
-
-
-# model_base = ImageClassifier(
-#     num_classes=num_classes,
-#     dropout=0.3,
-# )
-# history, metrics, model_probs = model_base.run_experiment(
-#     X_train=X_img_train,
-#     X_test=X_img_test,
+# history, metrics, model_probs = fusion_model.run_experiment(
+#     model=fusion_model,
+#     X_train_img=X_img_train,
+#     X_train_tab=X_tab_train,
+#     X_test_img=X_img_test,
+#     X_test_tab=X_tab_test,
 #     y_train=y_train,
 #     y_test=y_test,
 #     num_epochs=EPOCHS
 # )
 # print(history)
 # print(pd.Series(metrics))
+
+
+
+
+model_base = ImageClassifier(
+    num_classes=num_classes,
+    dropout=0.3,
+)
+
+history, metrics, model_probs = model_base.run_experiment(
+    X_train=X_img_train,
+    X_test=X_img_test,
+    y_train=y_train,
+    y_test=y_test,
+    num_epochs=EPOCHS
+)
+print(history)
+print(pd.Series(metrics))
 
 
 
