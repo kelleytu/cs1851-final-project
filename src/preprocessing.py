@@ -146,28 +146,89 @@ def remove_fill_lines(img, gray, lines, min_len, max_len, mask_thickness):
     fill = cv2.inpaint(img, dilated, 3, cv2.INPAINT_TELEA)
     return fill, line_mask, dilated
 
-def normalize_for_resnet(X):
-    X = X.astype("float32") / 255.0
+def normalize_for_resnet(X, show=False):
+    X = X.float()
+    print(X.max())
+    if X.max() > 1.0:
+        X = X / 255.0
 
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
+    # image net statistics
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
 
-    X = (X - mean) / std
-    return X
+    X_norm = (X - mean) / std
+
+    if show:
+        og_img = X[0].permute(1,2,0).cpu().numpy()
+        normalized_img = X_norm[0].permute(1,2,0).cpu().numpy()
+
+        plt.figure(figsize=(8, 4))
+
+        plt.subplot(1, 2, 1)
+        plt.imshow(og_img)
+        plt.title("Before ResNet normalization")
+        plt.axis("off")
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(normalized_img)
+        plt.title("After normalization")
+        plt.axis("off")
+
+        plt.tight_layout()
+        plt.show()
+    
+    return X_norm
 
 
-def augment_data(X):
-    transform = T.Compose(
-        [
-            T.ToPILImage(),
-            T.RandomHorizontalFlip(p=0.5),
-            T.RandomVerticalFlip(p=0.5),
-            T.RandomRotation(90),
-            T.ToTensor()
-        ]
-    )
+def transform_data(X, train=True, show=False):
+    
+    if train:
+        transform = T.Compose(
+            [
+                T.ToPILImage(),
+                T.RandomHorizontalFlip(p=0.5),
+                T.RandomVerticalFlip(p=0.5),
+                # T.RandomRotation(90),
+                T.ToTensor(),
+                T.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]
+                )
+            ]
+        )
+    else:
+        transform = T.Compose(
+            [
+                T.ToPILImage(),
+                T.ToTensor(),
+                T.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225]
+                )
+            ]
+        )
+
 
     augmented = []
     for img in X:
         augmented.append(transform(img))
+
+    if show:
+        original_np = X[0]
+        augmented_np = augmented[0].permute(1,2,0).cpu().numpy()
+
+        plt.figure(figsize=(8,4))
+        plt.subplot(1,2,1)
+        plt.imshow(original_np)
+        plt.title("Original")
+        plt.axis("off")
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(augmented_np)
+        plt.title("Augmented")
+        plt.axis("off")
+
+        plt.tight_layout()
+        plt.show()
+        
     return torch.stack(augmented)

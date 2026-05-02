@@ -379,6 +379,7 @@ class ResNetFusionModel(nn.Module):
         y_train = torch.tensor(y_train).long()
         y_test = torch.tensor(y_test).long()
 
+        X_test_img = transform_data(X_test_img, train=False)
         # assign higher priority to minority data
         num_classes = len(torch.unique(y_train))
         class_weights = torch.tensor(compute_class_weight(class_weight="balanced", classes=np.arange(num_classes), y=y_train.cpu().numpy()), dtype=torch.float32)
@@ -397,10 +398,10 @@ class ResNetFusionModel(nn.Module):
         best_probs = None
 
         for epoch in range(1, num_epochs + 1):
-            X_train_img_epoch = X_train_img.copy()
-            X_train_img_epoch = augment_data(X_train_img_epoch)
+            X_train_img_epoch = X_train_img.clone()
+            X_train_img_epoch = transform_data(X_train_img_epoch, train=True)
 
-            tr_loss = self.train_one_epoch(X_train_img, X_train_tab, y_train, optimizer, criterion, batch_size=batch_size) # probs for ensemble model
+            tr_loss = self.train_one_epoch(X_train_img_epoch, X_train_tab, y_train, optimizer, criterion, batch_size=batch_size) # probs for ensemble model
             te_loss, te_acc, metrics, probs = self.evaluate(X_test_img, X_test_tab, y_test, criterion)
             history["train_loss"].append(tr_loss)
             history["test_loss"].append(te_loss)

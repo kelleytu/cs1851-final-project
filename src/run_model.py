@@ -36,88 +36,42 @@ X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, 
     random_state=42, 
     stratify=train_labels)
 
-sample_images = preprocess_images(X_img_train[:3], show=True)
-sample_images = normalize_for_resnet(sample_images)
+# sample_images = preprocess_images(X_img_train[:3], show=False)
+# sample_images = augment_data(sample_images, show=True)
 
-visualize_augmentation(torch.tensor(sample_images[0]).permute(2,0,1))
-# X_img_train = preprocess_images(X_img_train)
-# X_img_test = preprocess_images(X_img_test)
-
-# X_img_train = normalize_for_resnet(X_img_train)
-# X_img_test = normalize_for_resnet(X_img_test)
+X_img_train = preprocess_images(X_img_train)
+X_img_test = preprocess_images(X_img_test)
 
 
-# EPOCHS=40
-# num_classes=7
-# tabular_dim = X_tab_train.shape[1]
+EPOCHS=1
+num_classes=7
+tabular_dim = X_tab_train.shape[1]
 
-# model_base = ResNetFusionModel(
-#     tabular_dim=tabular_dim,
-#     num_classes=num_classes,
-#     dropout=0.3,
-# )
+model_base = ResNetFusionModel(
+    tabular_dim=tabular_dim,
+    num_classes=num_classes,
+    dropout=0.3,
+)
 
-# history, metrics, model_probs = model_base.run_experiment(
-#     X_train_img=X_img_train,
-#     X_train_tab=X_tab_train,
-#     X_test_img=X_img_test,
-#     X_test_tab=X_tab_test,
-#     y_train=y_train,
-#     y_test=y_test,
-#     num_epochs=EPOCHS,
-#     batch_size=64
-# )
-# print(history)
-# history.to_csv("history.csv", index=False)
-
-# print(pd.Series(metrics))
-
-# torch.save(model_base.state_dict(), "resnet_fusion_model.pt")
-# joblib.dump(history, "resnet_fusion_history.pkl")
-# joblib.dump(metrics, "resnet_fusion_metrics.pkl")
-# print("Saved model weights, history, and metrics.")
+history, metrics, model_probs = model_base.run_experiment(
+    X_train_img=X_img_train,
+    X_train_tab=X_tab_train,
+    X_test_img=X_img_test,
+    X_test_tab=X_tab_test,
+    y_train=y_train,
+    y_test=y_test,
+    num_epochs=EPOCHS,
+    batch_size=64
+)
+print(history)
 
 
+print(pd.Series(metrics))
 
+torch.save(model_base.state_dict(), "resnet_fusion_model.pt")
+joblib.dump(history, "resnet_fusion_history.pkl")
+joblib.dump(metrics, "resnet_fusion_metrics.pkl")
+print("Saved model weights, history, and metrics.")
 
-# fusion_model = FusionModel(num_classes)
-
-# history, metrics, model_probs = fusion_model.run_experiment(
-#     model=fusion_model,
-#     X_train_img=X_img_train,
-#     X_train_tab=X_tab_train,
-#     X_test_img=X_img_test,
-#     X_test_tab=X_tab_test,
-#     y_train=y_train,
-#     y_test=y_test,
-#     num_epochs=EPOCHS
-# )
-# print(history)
-# print(pd.Series(metrics))
-
-
-
-
-# model_base = ImageClassifier(
-#     num_classes=num_classes,
-#     dropout=0.3,
-# )
-
-# history, metrics, model_probs = model_base.run_experiment(
-#     X_train=X_img_train,
-#     X_test=X_img_test,
-#     y_train=y_train,
-#     y_test=y_test,
-#     num_epochs=EPOCHS
-# )
-# print(history)
-# print(pd.Series(metrics))
-
-
-# print("\nEnsemble Metrics:")
-# print("Accuracy:", accuracy_score(y_test, combined_preds))
-# print("Precision:", precision_score(y_test, combined_preds, zero_division = 0, average = "macro"))
-# print("Recall:", recall_score(y_test, combined_preds, zero_division = 0, average = "macro"))
-# print("F1:", f1_score(y_test, combined_preds, zero_division = 0, average = "macro"))
-# print("ROC-AUC", roc_auc_score(y_test, combined_probs, average = "macro", multi_class = "ovr"))
-
+history = pd.DataFrame(history)
+history.to_csv("history.csv", index=False)
