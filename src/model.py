@@ -397,7 +397,8 @@ class ResNetFusionModel(nn.Module):
         best_probs = None
 
         for epoch in range(1, num_epochs + 1):
-            X_train_img = augment_data(X_train_img)
+            X_train_img_epoch = X_train_img.copy()
+            X_train_img_epoch = augment_data(X_train_img_epoch)
 
             tr_loss = self.train_one_epoch(X_train_img, X_train_tab, y_train, optimizer, criterion, batch_size=batch_size) # probs for ensemble model
             te_loss, te_acc, metrics, probs = self.evaluate(X_test_img, X_test_tab, y_test, criterion)

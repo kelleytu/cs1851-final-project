@@ -36,40 +36,46 @@ X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, 
     random_state=42, 
     stratify=train_labels)
 
-# train_images = preprocess_images(train_images)
-X_img_train = preprocess_images(X_img_train)
+sample_images = preprocess_images(X_img_train[:3], show=True)
+sample_images = normalize_for_resnet(sample_images)
 
-X_img_test = preprocess_images(X_img_test)
-X_img_train = normalize_for_resnet(X_img_train)
-X_img_test = normalize_for_resnet(X_img_test)
+visualize_augmentation(torch.tensor(sample_images[0]).permute(2,0,1))
+# X_img_train = preprocess_images(X_img_train)
+# X_img_test = preprocess_images(X_img_test)
 
-EPOCHS=40
-num_classes=7
-tabular_dim = X_tab_train.shape[1]
+# X_img_train = normalize_for_resnet(X_img_train)
+# X_img_test = normalize_for_resnet(X_img_test)
 
-model_base = ResNetFusionModel(
-    tabular_dim=tabular_dim,
-    num_classes=num_classes,
-    dropout=0.3,
-)
 
-history, metrics, model_probs = model_base.run_experiment(
-    X_train_img=X_img_train,
-    X_train_tab=X_tab_train,
-    X_test_img=X_img_test,
-    X_test_tab=X_tab_test,
-    y_train=y_train,
-    y_test=y_test,
-    num_epochs=EPOCHS,
-    batch_size=64
-)
-print(history)
-print(pd.Series(metrics))
+# EPOCHS=40
+# num_classes=7
+# tabular_dim = X_tab_train.shape[1]
 
-torch.save(model_base.state_dict(), "resnet_fusion_model.pt")
-joblib.dump(history, "resnet_fusion_history.pkl")
-joblib.dump(metrics, "resnet_fusion_metrics.pkl")
-print("Saved model weights, history, and metrics.")
+# model_base = ResNetFusionModel(
+#     tabular_dim=tabular_dim,
+#     num_classes=num_classes,
+#     dropout=0.3,
+# )
+
+# history, metrics, model_probs = model_base.run_experiment(
+#     X_train_img=X_img_train,
+#     X_train_tab=X_tab_train,
+#     X_test_img=X_img_test,
+#     X_test_tab=X_tab_test,
+#     y_train=y_train,
+#     y_test=y_test,
+#     num_epochs=EPOCHS,
+#     batch_size=64
+# )
+# print(history)
+# history.to_csv("history.csv", index=False)
+
+# print(pd.Series(metrics))
+
+# torch.save(model_base.state_dict(), "resnet_fusion_model.pt")
+# joblib.dump(history, "resnet_fusion_history.pkl")
+# joblib.dump(metrics, "resnet_fusion_metrics.pkl")
+# print("Saved model weights, history, and metrics.")
 
 
 
