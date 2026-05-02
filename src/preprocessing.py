@@ -43,6 +43,9 @@ class FPDataLoader:
         plt.tight_layout()
         plt.show()
 
+
+
+
 def preprocess_images(images, power=6, show=False):
     # normalization
     # gray scale

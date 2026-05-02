@@ -164,109 +164,6 @@ class FusionModel(nn.Module):
 
         return history, metrics, probs
 
-# may need to run open "/Applications/Python 3.12/Install Certificates.command" in terminal
-# from torchvision import models
-# class ImageClassifier(nn.Module):
-#     def __init__(self, num_classes=7, dropout=0.3):
-#         super().__init__()
-#         res_mod = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-#         in_features = res_mod.fc.in_features
-#         res_mod.fc = nn.Sequential(
-#             nn.Dropout(p=dropout),
-#             nn.Linear(in_features, num_classes)
-#         )
-#         self.image_classifier = res_mod
-
-#     def forward(self, x):
-#         return self.image_classifier(x)
-
-#     def train_one_epoch(self, X_img, y, optimizer, criterion, batch_size):
-#         perm = torch.randperm(X_img.size(0))
-#         X_img = X_img[perm]
-#         y = y[perm]
-        
-#         train_loader = DataLoader(
-#             TensorDataset(X_img, y),
-#             batch_size=batch_size,
-#             shuffle=False
-#         )
-
-#         # num_batches = (.shape[0] + batch_size - 1) // batch_size
-#         self.train()
-#         total_loss = 0.0
-
-#         for i, (X_img, y) in enumerate(train_loader):
-#             print(f"batch {i}")
-#             optimizer.zero_grad()
-#             logits = self(X_img)
-
-#             # probs = torch.nn.functional.softmax(logits, dim=1)
-#             # prob_list.append(probs.cpu())
-#             loss = criterion(logits, y)
-
-#             # print("backward pass")
-#             loss.backward()
-#             # print("optimize step")
-#             optimizer.step()
-#             total_loss += loss.item()
-
-#         # prob_list = torch.cat(prob_list, dim=0)
-
-#         # print(prob_list.size())
-#         # flatten if needed. should be size , num_classes
-
-#         # return total_loss / len(train_loader), probs
-#         return total_loss / len(train_loader)
-
-
-#     def evaluate(self, X_img, y, criterion):
-#         self.eval()
-#         with torch.no_grad():
-#             logits = self(X_img)
-#             y_proba = torch.nn.functional.softmax(logits, dim=1)
-
-#             loss = criterion(logits, y)
-#             y_pred = logits.argmax(dim=1)
-#             correct = (y_pred == y).sum().item()
-#             n = X_img.shape[0]
-
-#         avg = "macro"
-#         metrics = {
-#             "accuracy": accuracy_score(y, y_pred),
-#             "precision": precision_score(y, y_pred, zero_division = 0, average = avg),
-#             "recall": recall_score(y, y_pred, zero_division = 0, average = avg),
-#             "f1": f1_score(y, y_pred, zero_division = 0, average = avg),
-#             "roc_auc": np.nan
-#         }
-#         metrics["roc_auc"] = roc_auc_score(y, y_proba, average = avg, multi_class = "ovr")
-
-#         return loss.item(), correct / n, metrics, y_proba
-    
-#     def run_experiment(self, X_train, X_test, y_train, y_test, num_epochs):
-#         criterion = nn.CrossEntropyLoss()
-#         optimizer = optim.Adam(self.parameters(), lr=1e-3)
-#         history = {"train_loss": [], "test_loss": [], "test_acc": []}
-
-#         # later change to use preprocessing method?
-#         X_train = np.transpose(X_train, (0, 3, 1, 2)) # transposed images here
-#         X_test = np.transpose(X_test, (0, 3, 1, 2)) # transposed images here
-
-#         X_train = torch.tensor(X_train).float()
-#         X_test = torch.tensor(X_test).float()
-#         y_train = torch.tensor(y_train).long()
-#         y_test = torch.tensor(y_test).long()
-
-#         for epoch in range(1, num_epochs + 1):
-#             tr_loss = self.train_one_epoch(X_train, y_train, optimizer, criterion, batch_size=64) # probs for ensemble model
-#             te_loss, te_acc, metrics, probs = self.evaluate(X_test, y_test, criterion)
-#             history["train_loss"].append(tr_loss)
-#             history["test_loss"].append(te_loss)
-#             history["test_acc"].append(te_acc)
-#             if epoch % 10 == 0:
-#                 print(f"  Epoch {epoch:3d} | train loss {tr_loss:.4f} | "
-#                     f"test loss {te_loss:.4f} | test acc {te_acc:.3f}")
-
-#         return history, metrics, probs
 
 from torchvision import models
 from sklearn.utils.class_weight import compute_class_weight
@@ -322,23 +219,12 @@ class ResNetFusionModel(nn.Module):
             print(f"batch {i}")
             optimizer.zero_grad()
             logits = self(X_img, X_tab)
-
-            # probs = torch.nn.functional.softmax(logits, dim=1)
-            # prob_list.append(probs.cpu())
             loss = criterion(logits, y)
 
-            # print("backward pass")
             loss.backward()
-            # print("optimize step")
             optimizer.step()
             total_loss += loss.item()
 
-        # prob_list = torch.cat(prob_list, dim=0)
-
-        # print(prob_list.size())
-        # flatten if needed. should be size , num_classes
-
-        # return total_loss / len(train_loader), probs
         return total_loss / len(train_loader)
 
 
@@ -384,6 +270,7 @@ class ResNetFusionModel(nn.Module):
         num_classes = len(torch.unique(y_train))
         class_weights = torch.tensor(compute_class_weight(class_weight="balanced", classes=np.arange(num_classes), y=y_train.cpu().numpy()), dtype=torch.float32)
         criterion = nn.CrossEntropyLoss(weight=class_weights)
+        # criterion = FocalLoss(weight=class_weights, gamma=2.0)
         optimizer = optim.AdamW(
             [
                 {"params": self.image_classifier.parameters(), "lr": 1e-5},
@@ -392,6 +279,11 @@ class ResNetFusionModel(nn.Module):
             ], 
             weight_decay=1e-4)
         
+        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        #     optimizer, mode="max", factor=0.5, patience=3, threshold=1e-3, cooldown=1,
+        #     min_lr=1e-6
+        # )        
+
         best_f1 = -1
         best_state = None
         best_metrics = None
@@ -408,6 +300,8 @@ class ResNetFusionModel(nn.Module):
             history["test_acc"].append(te_acc)
             history["test_f1"].append(metrics["f1"])
             history["epoch"].append(epoch)
+
+            # scheduler.step(metrics["f1"])
 
             if metrics["f1"] > best_f1:
                 best_f1 = metrics["f1"]

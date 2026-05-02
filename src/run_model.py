@@ -21,6 +21,7 @@ from sklearn.metrics import (
     r2_score,
 )
 import joblib
+from sklearn.preprocessing import StandardScaler
 
 
 loader = FPDataLoader()
@@ -42,8 +43,12 @@ X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, 
 X_img_train = preprocess_images(X_img_train)
 X_img_test = preprocess_images(X_img_test)
 
+tab_scaler = StandardScaler()
+X_tab_train = tab_scaler.fit_transform(X_tab_train)
+X_tab_val = tab_scaler.transform(X_tab_val)
+X_tab_test = tab_scaler.transform(X_tab_test)
 
-EPOCHS=1
+EPOCHS=20
 num_classes=7
 tabular_dim = X_tab_train.shape[1]
 
