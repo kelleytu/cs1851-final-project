@@ -57,13 +57,20 @@ def preprocess_images(images, power=6, show=False):
     for img in images:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # now in opencv chn order
 
-        # og = img.copy()
+        og = img.copy()
         # center crop, originally 224 x 224
         old_size = 224
         new_size = 204
         cut = (old_size - new_size) // 2
         
         cropped = img[cut:cut+new_size, cut:cut+new_size]
+        # img = remove_border(
+        #     img,
+        #     threshold=40,
+        #     border_width=25,
+        #     min_dark_frame_fraction=0.02
+        # )
+        # cropped = img
 
         # hair removal
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
@@ -103,9 +110,9 @@ def preprocess_images(images, power=6, show=False):
                 dilated = cv2.cvtColor(dilated, cv2.COLOR_GRAY2BGR)
                 # filled = cv2.cvtColor(filled, cv2.COLOR_GRAY2BGR)
 
-                combined = np.hstack((cropped, edges, closed, eroded, line_img, line_mask, dilated, filled, img))
+                combined = np.hstack((og, cropped, edges, closed, eroded, line_img, line_mask, dilated, filled, img))
             else:            
-                combined = np.hstack((cropped, edges, closed, eroded, img))
+                combined = np.hstack((og, cropped, edges, closed, eroded, img))
 
             cv2.imshow("preprocessing", combined)
             cv2.waitKey(0) 
@@ -235,3 +242,37 @@ def transform_data(X, train=True, show=False):
         plt.show()
         
     return torch.stack(augmented)
+
+# def remove_border(
+#     img,
+#     threshold=5,
+#     border_width=4,
+#     min_dark_frame_fraction=0.30
+# ):
+#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+#     dark_mask = gray <= threshold
+
+#     frame_mask = np.zeros_like(dark_mask, dtype=bool)
+#     frame_mask[:border_width, :] = True
+#     frame_mask[-border_width:, :] = True
+#     frame_mask[:, :border_width] = True
+#     frame_mask[:, -border_width:] = True
+
+#     dark_frame_fraction = dark_mask[frame_mask].mean()
+
+#     if dark_frame_fraction < min_dark_frame_fraction:
+#         return img
+
+#     mask = dark_mask & frame_mask
+
+#     content_mask = gray > threshold
+#     if content_mask.sum() == 0:
+#         return img
+
+#     median_color = np.median(img[content_mask], axis=0).astype(np.uint8)
+
+#     painted = img.copy()
+#     painted[mask] = median_color
+
+#     return painted
