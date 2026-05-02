@@ -162,3 +162,12 @@ def remove_fill_lines(img, gray, lines, min_len, max_len, mask_thickness):
 
         #     fill[y,x] = np.median(neighbors)
     return fill, line_mask, dilated
+
+def normalize_for_resnet(X):
+    X = X.astype("float32") / 255.0
+
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+
+    X = (X - mean) / std
+    return X

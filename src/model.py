@@ -269,6 +269,8 @@ class FusionModel(nn.Module):
 #         return history, metrics, probs
 
 from torchvision import models
+from sklearn.utils.class_weight import compute_class_weight
+import copy
 class ResNetFusionModel(nn.Module):
     def __init__(self, tabular_dim=3, num_classes=7, dropout=0.3):
         super().__init__()
@@ -362,10 +364,8 @@ class ResNetFusionModel(nn.Module):
 
         return loss.item(), correct / n, metrics, y_proba
     
-    def run_experiment(self, X_train_img, X_train_tab, X_test_img, X_test_tab, y_train, y_test, num_epochs):
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
-        history = {"train_loss": [], "test_loss": [], "test_acc": []}
+    def run_experiment(self, X_train_img, X_train_tab, X_test_img, X_test_tab, y_train, y_test, num_epochs, batch_size=64):
+        history = {"train_loss": [], "test_loss": [], "test_acc": [], "test_f1": []}
 
         X_train_img = np.transpose(X_train_img, (0, 3, 1, 2)) # transposed images here
         X_test_img = np.transpose(X_test_img, (0, 3, 1, 2)) # transposed images here
@@ -378,14 +378,41 @@ class ResNetFusionModel(nn.Module):
         y_train = torch.tensor(y_train).long()
         y_test = torch.tensor(y_test).long()
 
+        # assign higher priority to minority data
+        num_classes = len(torch.unique(y_train))
+        class_weights = torch.tensor(compute_class_weight(class_weight="balanced", classes=np.arange(num_classes), y=y_train.cpu().numpy()), dtype=torch.float32)
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+        optimizer = optim.AdamW(
+            [
+                {"params": self.image_classifier.parameters(), "lr": 1e-5},
+                {"params": self.tabular_head.parameters(), "lr": 1e-4},
+                {"params": self.classifier.parameters(), "lr": 1e-4},
+            ], 
+            weight_decay=1e-4)
+        
+        best_f1 = -1
+        best_state = None
+        best_metrics = None
+        best_probs = None
+
         for epoch in range(1, num_epochs + 1):
-            tr_loss = self.train_one_epoch(X_train_img, X_train_tab, y_train, optimizer, criterion, batch_size=64) # probs for ensemble model
+            tr_loss = self.train_one_epoch(X_train_img, X_train_tab, y_train, optimizer, criterion, batch_size=batch_size) # probs for ensemble model
             te_loss, te_acc, metrics, probs = self.evaluate(X_test_img, X_test_tab, y_test, criterion)
             history["train_loss"].append(tr_loss)
             history["test_loss"].append(te_loss)
             history["test_acc"].append(te_acc)
+            history["test_f1"].append(metrics["f1"])
+
+            if metrics["f1"] > best_f1:
+                best_f1 = metrics["f1"]
+                # getting frozen copy of state dict
+                best_state = copy.deepcopy(self.state_dict())
+                best_metrics = metrics
+                best_probs = probs
+
             # if epoch % 10 == 0:
             print(f"  Epoch {epoch:3d} | train loss {tr_loss:.4f} | "
-                f"test loss {te_loss:.4f} | test acc {te_acc:.3f} | test f1 {metrics['f1']:.3f}")
+                f"test loss {te_loss:.4f} | test acc {te_acc:.4f} | test f1 {metrics['f1']:.4f}")
 
-        return history, metrics, probs
+        self.load_state_dict(best_state)
+        return history, best_metrics, best_probs
