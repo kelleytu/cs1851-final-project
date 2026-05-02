@@ -1,4 +1,4 @@
-from preprocessing import FPDataLoader, preprocess_images, normalize_for_resnet
+from preprocessing import *
 from model import *
 from utils import *
 import matplotlib.pyplot as plt
@@ -38,11 +38,12 @@ X_img_train, X_img_test, X_tab_train, X_tab_test, ids_train, ids_test, y_train, 
 
 # train_images = preprocess_images(train_images)
 X_img_train = preprocess_images(X_img_train)
+
 X_img_test = preprocess_images(X_img_test)
 X_img_train = normalize_for_resnet(X_img_train)
 X_img_test = normalize_for_resnet(X_img_test)
 
-EPOCHS=5
+EPOCHS=40
 num_classes=7
 tabular_dim = X_tab_train.shape[1]
 

@@ -3,6 +3,8 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import cv2
 import torch
+import torchvision.transforms as T
+
 
 class FPDataLoader:
     def __init__(self):
@@ -21,16 +23,14 @@ class FPDataLoader:
         return train_ids, train_images, train_labels, train_tabular, metadata
 
 
-    def get_test_cancer_data(self):
-        test_ids = np.load("../data/test1_ids.npy", allow_pickle=True)
-        test_images = np.load("../data/test1_images.npy", allow_pickle=True)
-        # train_labels = np.load("../data/test1_labels.npy", allow_pickle=True)
-        test_tabular = np.load("../data/test1_tabular.npy", allow_pickle=True)
-        metadata = np.load("../data/metadata.npy", allow_pickle=True)
+    def get_test_cancer_data(self, test_set):
+        test_ids = np.load(f"../data/test{test_set}_ids.npy", allow_pickle=True)
+        test_images = np.load(f"../data/test{test_set}_images.npy", allow_pickle=True)
+        test_tabular = np.load(f"../data/test{test_set}_tabular.npy", allow_pickle=True)
         print("IDs Shape:", test_ids.shape)
         print("Images Shape:", test_images.shape)
         print("Tabular Shape:", test_tabular.shape)
-        return test_ids, test_images, test_tabular, metadata
+        return test_ids, test_images, test_tabular
 
     def show_sample_imgs(self, train_images, train_labels):
         cancer_classes = np.unique(train_labels)
@@ -144,23 +144,6 @@ def remove_fill_lines(img, gray, lines, min_len, max_len, mask_thickness):
     dilated = cv2.dilate(line_mask, dilate_kernel) # can change iterations
 
     fill = cv2.inpaint(img, dilated, 3, cv2.INPAINT_TELEA)
-
-        # fill = gray.copy()
-        # mask_coords = np.column_stack(np.where(dilated > 0))
-
-        # for y, x in mask_coords:
-        #     radius = 5
-        #     img_length = 204
-        #     y0 = max(0, y-radius)
-        #     y1 = min(img_length, y + radius + 1)
-        #     x0 = max(0, x-radius)
-        #     x1 = min(img_length, x + radius + 1)
-
-        #     patch = fill[y0:y1, x0:x1]
-        #     patch_mask = dilated[y0:y1, x0:x1]
-        #     neighbors = patch[patch_mask == 0]
-
-        #     fill[y,x] = np.median(neighbors)
     return fill, line_mask, dilated
 
 def normalize_for_resnet(X):
@@ -171,3 +154,20 @@ def normalize_for_resnet(X):
 
     X = (X - mean) / std
     return X
+
+
+def augment_data(X):
+    transform = T.Compose(
+        [
+            T.ToPILImage(),
+            T.RandomHorizontalFlip(p=0.5),
+            T.RandomVerticalFlip(p=0.5),
+            T.RandomRotation(90),
+            T.ToTensor()
+        ]
+    )
+
+    augmented = []
+    for img in X:
+        augmented.append(transform(img))
+    return torch.stack(augmented)

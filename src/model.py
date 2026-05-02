@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch.optim as optim
 import matplotlib.pyplot as plt
-from preprocessing import FPDataLoader
+from preprocessing import *
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 from utils import FusionDataset
@@ -305,6 +305,7 @@ class ResNetFusionModel(nn.Module):
     def train_one_epoch(self, X_img, X_tab, y, optimizer, criterion, batch_size):
         perm = torch.randperm(X_img.size(0))
         X_img = X_img[perm]
+        X_tab = X_tab[perm]
         y = y[perm]
         
         train_loader = DataLoader(
@@ -365,7 +366,7 @@ class ResNetFusionModel(nn.Module):
         return loss.item(), correct / n, metrics, y_proba
     
     def run_experiment(self, X_train_img, X_train_tab, X_test_img, X_test_tab, y_train, y_test, num_epochs, batch_size=64):
-        history = {"train_loss": [], "test_loss": [], "test_acc": [], "test_f1": []}
+        history = {"train_loss": [], "test_loss": [], "test_acc": [], "test_f1": [], "epoch": []}
 
         X_train_img = np.transpose(X_train_img, (0, 3, 1, 2)) # transposed images here
         X_test_img = np.transpose(X_test_img, (0, 3, 1, 2)) # transposed images here
@@ -396,12 +397,15 @@ class ResNetFusionModel(nn.Module):
         best_probs = None
 
         for epoch in range(1, num_epochs + 1):
+            X_train_img = augment_data(X_train_img)
+
             tr_loss = self.train_one_epoch(X_train_img, X_train_tab, y_train, optimizer, criterion, batch_size=batch_size) # probs for ensemble model
             te_loss, te_acc, metrics, probs = self.evaluate(X_test_img, X_test_tab, y_test, criterion)
             history["train_loss"].append(tr_loss)
             history["test_loss"].append(te_loss)
             history["test_acc"].append(te_acc)
             history["test_f1"].append(metrics["f1"])
+            history["epoch"].append(epoch)
 
             if metrics["f1"] > best_f1:
                 best_f1 = metrics["f1"]
