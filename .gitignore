@@ -5,3 +5,7 @@ fproj/
 __pycache__/
 results/
 preprocess/
+*.csv
+*.pkl
+*.pt
+saved_models/
