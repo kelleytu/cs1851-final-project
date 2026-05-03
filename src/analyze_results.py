@@ -1,6 +1,7 @@
 import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
+import sys 
 
 def plot_model_loss(pkl_path, csv_path):
     # with open(pkl_path, 'rb') as file:
@@ -26,6 +27,8 @@ def plot_model_loss(pkl_path, csv_path):
 
 pkl_path = 'saved_models/20_aug/resnet_fusion_history.pkl'
 csv_path = 'saved_models/5_border/history.csv'
+
+csv_path = sys.argv[1]
 
 plot_model_loss(pkl_path, csv_path)
 

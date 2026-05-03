@@ -2,6 +2,27 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 import torchvision.transforms as T
+import torch.nn as nn
+
+class FocalLoss(nn.Module):
+    def __init__(self, weights, alpha=1, gamma=2, reduction='mean'):
+        super(FocalLoss, self).__init__()
+        self.weights = weights
+        self.gamma = gamma
+        self.alpha = alpha
+        self.reduction = reduction
+
+    def forward(self, logits, y):
+        criterion = nn.CrossEntropyLoss(weight=self.weights)
+        ce_loss = criterion(logits,y)
+
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1-pt) ** self.gamma * ce_loss
+
+        if self.reduction == "mean":
+            return focal_loss.mean()
+
+
 
 class FusionDataset(Dataset):
     def __init__(self, X_image, X_tabular, y):
@@ -47,43 +68,3 @@ def visualize_augmentation(image_tensor):
 
 
 
-
-# def visualize_activations(model, input_tensor, layer_name="conv1"):
-#     model.eval()
-#     activations = {}
-    
-#     def hook_fn(module, input, output):
-#         activations[layer_name] = output.detach().cpu()
-
-#     target_layer = None
-#     for name, module in model.named_modules():
-#         if name == layer_name:
-#             target_layer = module
-#             break
-    
-#     if target_layer is None:
-#         raise ValueError(f"Layer {layer_name} not found in the model.")
-    
-#     hook = target_layer.register_forward_hook(hook_fn)
-#     with torch.no_grad():
-#         if input_tensor.dim() == 3:
-#             input_tensor = input_tensor.unsqueeze(0)
-#         if input_tensor.dim() == 2:
-#             input_tensor = input_tensor.unsqueeze(0).unsqueeze(0)
-#         device = next(model.parameters()).device
-#         input_tensor = input_tensor.to(device)
-#         _ = model(input_tensor)
-#     hook.remove()
-
-#     feature_maps = activations[layer_name][0]
-#     num_maps = min(feature_maps.shape[0], 16)
-#     cols = 4
-#     rows = -(-num_maps // cols)
-#     plt.figure(figsize=(12, 3 * rows))
-#     for i in range(num_maps):
-#         plt.subplot(rows, cols, i + 1)
-#         plt.imshow(feature_maps[i].cpu(), cmap='viridis')
-#         plt.axis('off')
-#         plt.title(f"{layer_name} - Map {i+1}")
-#     plt.tight_layout()
-#     plt.show() 

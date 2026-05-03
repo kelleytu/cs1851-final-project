@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from preprocessing import *
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
-from utils import FusionDataset
+from utils import *
 import matplotlib.pyplot as plt
 # import seaborn as sns
 
@@ -130,8 +130,8 @@ class ResNetFusionModel(nn.Module):
         # assign higher priority to minority data
         num_classes = len(torch.unique(y_train))
         class_weights = torch.tensor(compute_class_weight(class_weight="balanced", classes=np.arange(num_classes), y=y_train.cpu().numpy()), dtype=torch.float32)
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
-        # criterion = FocalLoss(weight=class_weights, gamma=2.0)
+        # criterion = nn.CrossEntropyLoss(weight=class_weights)
+        criterion = FocalLoss(weights=class_weights, gamma=2.0)
         optimizer = optim.AdamW(
             [
                 {"params": self.image_classifier.parameters(), "lr": 1e-5},
@@ -140,10 +140,10 @@ class ResNetFusionModel(nn.Module):
             ], 
             weight_decay=1e-4)
         
-        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        #     optimizer, mode="max", factor=0.5, patience=3, threshold=1e-3, cooldown=1,
-        #     min_lr=1e-6
-        # )        
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="max", factor=0.5, patience=3, threshold=1e-3, cooldown=1,
+            min_lr=1e-6
+        )        
 
         best_f1 = -1
         best_state = None
@@ -162,7 +162,7 @@ class ResNetFusionModel(nn.Module):
             history["val_f1"].append(metrics["f1"])
             history["epoch"].append(epoch)
 
-            # scheduler.step(metrics["f1"])
+            scheduler.step(metrics["f1"])
 
             if metrics["f1"] > best_f1:
                 best_f1 = metrics["f1"]

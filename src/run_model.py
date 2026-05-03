@@ -49,7 +49,7 @@ X_tab_train, X_tab_val, _ = preprocess_tabular(X_tab_train, X_tab_val)
 # X_tab_val = tab_scaler.transform(X_tab_val)
 # X_tab_val = tab_scaler.transform(X_tab_val)
 
-EPOCHS=15
+EPOCHS=1
 num_classes=7
 tabular_dim = X_tab_train.shape[1]
 
