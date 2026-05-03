@@ -7,6 +7,7 @@ import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import pandas as pd
+import joblib
 
 num_classes=7
 tabular_dim = 3
@@ -26,6 +27,7 @@ test_images = preprocess_images(test_images)
 test_images = change_img_format(test_images)
 test_images = transform_data(test_images, train=False)
 # test_tabular = StandardScaler().fit_transform(test_tabular)
+test_tabular = preprocess_tabular_test(test_tabular)
 test_tabular = torch.tensor(test_tabular).float()
 
 # load in model

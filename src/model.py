@@ -27,147 +27,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import plot_tree
 from sklearn.utils.class_weight import compute_sample_weight
 
-
-class FusionModel(nn.Module):
-    def __init__(self, num_classes=7, dropout_p=0.3):
-        super().__init__()
-        self.loader = FPDataLoader()
-        self.cnn = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Dropout2d(p=0.25),
-            # nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            # nn.ReLU(),
-            # nn.MaxPool2d(2),
-            # nn.Dropout2d(p=0.25),
-            nn.Flatten(),
-        )
-        self.tabular_head = nn.Sequential(
-            nn.Linear(3, 64),
-            nn.ReLU(),
-        )
-        self.classifier = nn.Sequential(
-            nn.Linear(802880, 512), 
-            nn.ReLU(),
-            nn.Dropout(p=dropout_p),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Dropout(p=dropout_p),
-            nn.Linear(256, num_classes),
-        )
-
-    def forward(self, x_image, x_tabular):
-        # return self.classifier(self.cnn(x))
-        cnn_out = self.cnn(x_image)
-        tabular_out = self.tabular_head(x_tabular)
-        fused = torch.cat([cnn_out, tabular_out], dim=1)
-        return self.classifier(fused)
-
-    def train_one_epoch(self, model, X_img, X_tab, y, optimizer, criterion, batch_size):
-
-        perm = torch.randperm(X_img.size(0))
-        X_img = X_img[perm]
-        X_tab = X_tab[perm]
-        y = y[perm]
-        
-        train_loader = DataLoader(
-            FusionDataset(X_img, X_tab, y),
-            batch_size=batch_size,
-            shuffle=False
-        )
-
-        # num_batches = (.shape[0] + batch_size - 1) // batch_size
-        total_loss = 0.0
-        prob_list = []
-
-        for i, (X_img, X_tab, y) in enumerate(train_loader):
-
-            print(f"batch {i}")
-            model.train()
-            optimizer.zero_grad()
-            logits = model(X_img, X_tab)
-
-            # probs = torch.nn.functional.softmax(logits, dim=1)
-            # prob_list.append(probs.cpu())
-
-            loss = criterion(logits, y)
-
-            # print("backward pass")
-            loss.backward()
-            # print("optimize step")
-            optimizer.step()
-
-            total_loss += loss.item()
-
-        # prob_list = torch.cat(prob_list, dim=0)
-        # return total_loss / len(train_loader), probs
-        return total_loss / len(train_loader)
-
-
-    def evaluate(self, model, X_img, X_tab, y, criterion):
-        model.eval()
-        with torch.no_grad():
-
-
-            logits = model(X_img, X_tab)
-            y_proba = torch.nn.functional.softmax(logits, dim=1)
-
-            loss = criterion(logits, y)
-            y_pred = logits.argmax(dim=1)
-            correct = (y_pred == y).sum().item()
-
-            n = X_img.shape[0]
-
-        avg = "macro"
-        metrics = {
-            "accuracy": accuracy_score(y, y_pred),
-            "precision": precision_score(y, y_pred, zero_division = 0, average = avg),
-            "recall": recall_score(y, y_pred, zero_division = 0, average = avg),
-            "f1": f1_score(y, y_pred, zero_division = 0, average = avg),
-            "roc_auc": np.nan       
-            }
-        metrics["roc_auc"] = roc_auc_score(y, y_proba, average = avg, multi_class = "ovr")
-
-        return loss.item(), correct / n, metrics, y_proba
-    
-    def run_experiment(self, model, X_train_img, X_train_tab, X_test_img, X_test_tab, y_train, y_test, num_epochs):
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=1e-3)
-        history = {"train_loss": [], "test_loss": [], "test_acc": []}
-
-        # later change to use preprocessing method?
-        X_train_img = np.transpose(X_train_img, (0, 3, 1, 2)) # transposed images here
-        X_test_img = np.transpose(X_test_img, (0, 3, 1, 2)) # transposed images here
-
-        X_train_img = torch.tensor(X_train_img).float()
-        X_test_img = torch.tensor(X_test_img).float()
-        X_train_tab = torch.tensor(X_train_tab).float()
-        X_test_tab = torch.tensor(X_test_tab).float()
-
-
-        y_train = torch.tensor(y_train).long()
-        y_test = torch.tensor(y_test).long()
-
-  
-        for epoch in range(1, num_epochs + 1):
-            tr_loss = model.train_one_epoch(model, X_train_img, X_train_tab, y_train, optimizer, criterion, batch_size=64) # probs for ensemble model
-            te_loss, te_acc, metrics, probs = model.evaluate(model, X_test_img, X_test_tab, y_test, criterion)
-            history["train_loss"].append(tr_loss)
-            history["test_loss"].append(te_loss)
-            history["test_acc"].append(te_acc)
-            if epoch % 10 == 0:
-                print(f"  Epoch {epoch:3d} | train loss {tr_loss:.4f} | "
-                    f"test loss {te_loss:.4f} | test acc {te_acc:.3f}")
-
-        return history, metrics, probs
-
-
 from torchvision import models
 from sklearn.utils.class_weight import compute_class_weight
 import copy
+
 class ResNetFusionModel(nn.Module):
     def __init__(self, tabular_dim=3, num_classes=7, dropout=0.3):
         super().__init__()
@@ -251,21 +114,19 @@ class ResNetFusionModel(nn.Module):
 
         return loss.item(), correct / n, metrics, y_proba
     
-    def run_experiment(self, X_train_img, X_train_tab, X_test_img, X_test_tab, y_train, y_test, num_epochs, batch_size=64):
-        history = {"train_loss": [], "test_loss": [], "test_acc": [], "test_f1": [], "epoch": []}
+    def run_experiment(self, X_train_img, X_train_tab, X_val_img, X_val_tab, y_train, y_val, num_epochs, batch_size=64):
+        history = {"train_loss": [], "val_loss": [], "val_acc": [], "val_f1": [], "epoch": []}
 
-        X_train_img = np.transpose(X_train_img, (0, 3, 1, 2)) # transposed images here
-        X_test_img = np.transpose(X_test_img, (0, 3, 1, 2)) # transposed images here
-
-        X_train_img = torch.tensor(X_train_img).float()
-        X_test_img = torch.tensor(X_test_img).float()
+        X_train_img = change_img_format(X_train_img)
+        X_val_img = change_img_format(X_val_img)
+        
         X_train_tab = torch.tensor(X_train_tab).float()
-        X_test_tab = torch.tensor(X_test_tab).float()
+        X_val_tab = torch.tensor(X_val_tab).float()
 
         y_train = torch.tensor(y_train).long()
-        y_test = torch.tensor(y_test).long()
+        y_val = torch.tensor(y_val).long()
 
-        X_test_img = transform_data(X_test_img, train=False)
+        X_val_img = transform_data(X_val_img, train=False)
         # assign higher priority to minority data
         num_classes = len(torch.unique(y_train))
         class_weights = torch.tensor(compute_class_weight(class_weight="balanced", classes=np.arange(num_classes), y=y_train.cpu().numpy()), dtype=torch.float32)
@@ -294,11 +155,11 @@ class ResNetFusionModel(nn.Module):
             X_train_img_epoch = transform_data(X_train_img_epoch, train=True)
 
             tr_loss = self.train_one_epoch(X_train_img_epoch, X_train_tab, y_train, optimizer, criterion, batch_size=batch_size) # probs for ensemble model
-            te_loss, te_acc, metrics, probs = self.evaluate(X_test_img, X_test_tab, y_test, criterion)
+            val_loss, val_acc, metrics, probs = self.evaluate(X_val_img, X_val_tab, y_val, criterion)
             history["train_loss"].append(tr_loss)
-            history["test_loss"].append(te_loss)
-            history["test_acc"].append(te_acc)
-            history["test_f1"].append(metrics["f1"])
+            history["val_loss"].append(val_loss)
+            history["val_acc"].append(val_acc)
+            history["val_f1"].append(metrics["f1"])
             history["epoch"].append(epoch)
 
             # scheduler.step(metrics["f1"])
@@ -310,9 +171,8 @@ class ResNetFusionModel(nn.Module):
                 best_metrics = metrics
                 best_probs = probs
 
-            # if epoch % 10 == 0:
             print(f"  Epoch {epoch:3d} | train loss {tr_loss:.4f} | "
-                f"test loss {te_loss:.4f} | test acc {te_acc:.4f} | test f1 {metrics['f1']:.4f}")
+                f"val loss {val_loss:.4f} | val acc {val_acc:.4f} | val f1 {metrics['f1']:.4f}")
 
         self.load_state_dict(best_state)
         return history, best_metrics, best_probs

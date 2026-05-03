@@ -1,10 +1,13 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
 import matplotlib.pyplot as plt
 import cv2
 import torch
 import torchvision.transforms as T
-
+import os
+import joblib
 
 class FPDataLoader:
     def __init__(self):
@@ -45,25 +48,29 @@ class FPDataLoader:
 
 
 
-
 def preprocess_images(images, power=6, show=False):
     # normalization
     # gray scale
+    save_dir = os.path.join("..", "preprocess")
+    os.makedirs(save_dir, exist_ok=True)
+
     print("images shape")
     print(images.shape)
 
     preprocess = []
 
-    for img in images:
+    for i, img in enumerate(images):
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # now in opencv chn order
 
         og = img.copy()
         # center crop, originally 224 x 224
-        old_size = 224
-        new_size = 204
-        cut = (old_size - new_size) // 2
+        # old_size = 224
+        # new_size = 204
+        # cut = (old_size - new_size) // 2
         
-        cropped = img[cut:cut+new_size, cut:cut+new_size]
+        # cropped = img[cut:cut+new_size, cut:cut+new_size]
+<<<<<<< HEAD
+
         # img = remove_border(
         #     img,
         #     threshold=40,
@@ -71,6 +78,16 @@ def preprocess_images(images, power=6, show=False):
         #     min_dark_frame_fraction=0.02
         # )
         # cropped = img
+        cropped = crop_img(img)
+=======
+        img = remove_border(
+            img,
+            threshold=60,
+            border_width=40,
+            min_dark_frame_fraction=0.02
+        )
+        cropped = img
+>>>>>>> 20f9c83589fa5a5e03da881b89289fed560fd151
 
         # hair removal
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
@@ -114,9 +131,20 @@ def preprocess_images(images, power=6, show=False):
             else:            
                 combined = np.hstack((og, cropped, edges, closed, eroded, img))
 
-            cv2.imshow("preprocessing", combined)
-            cv2.waitKey(0) 
-            cv2.destroyAllWindows()
+            while True:
+                cv2.imshow("preprocessing", combined)
+                key = cv2.waitKey(0) & 0xFF
+
+                if key == 27:
+                    cv2.destroyAllWindows()
+                    exit()
+                elif key == ord("s"):
+                    filename = os.path.join(save_dir, f"image_{i}.png")
+                    cv2.imwrite(filename, combined)
+                    print(f"Saved {filename}")
+                
+                cv2.destroyAllWindows()
+                break
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         preprocess.append(img)
@@ -156,38 +184,6 @@ def remove_fill_lines(img, gray, lines, min_len, max_len, mask_thickness):
     fill = cv2.inpaint(img, dilated, 3, cv2.INPAINT_TELEA)
     return fill, line_mask, dilated
 
-def normalize_for_resnet(X, show=False):
-    X = X.float()
-    print(X.max())
-    if X.max() > 1.0:
-        X = X / 255.0
-
-    # image net statistics
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-
-    X_norm = (X - mean) / std
-
-    if show:
-        og_img = X[0].permute(1,2,0).cpu().numpy()
-        normalized_img = X_norm[0].permute(1,2,0).cpu().numpy()
-
-        plt.figure(figsize=(8, 4))
-
-        plt.subplot(1, 2, 1)
-        plt.imshow(og_img)
-        plt.title("Before ResNet normalization")
-        plt.axis("off")
-
-        plt.subplot(1, 2, 2)
-        plt.imshow(normalized_img)
-        plt.title("After normalization")
-        plt.axis("off")
-
-        plt.tight_layout()
-        plt.show()
-    
-    return X_norm
 
 
 def transform_data(X, train=True, show=False):
@@ -243,36 +239,108 @@ def transform_data(X, train=True, show=False):
         
     return torch.stack(augmented)
 
-# def remove_border(
-#     img,
-#     threshold=5,
-#     border_width=4,
-#     min_dark_frame_fraction=0.30
-# ):
-#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+<<<<<<< HEAD
 
-#     dark_mask = gray <= threshold
+def crop_img(img, crop_size=204, ring_width=20):
+        h, w = img.shape[:2]
 
-#     frame_mask = np.zeros_like(dark_mask, dtype=bool)
-#     frame_mask[:border_width, :] = True
-#     frame_mask[-border_width:, :] = True
-#     frame_mask[:, :border_width] = True
-#     frame_mask[:, -border_width:] = True
+        original_h, original_w = h, w
 
-#     dark_frame_fraction = dark_mask[frame_mask].mean()
+        y0 = (h - crop_size) // 2
+        x0 = (w - crop_size) // 2
+        y1 = y0 + crop_size
+        x1 = x0 + crop_size
 
-#     if dark_frame_fraction < min_dark_frame_fraction:
-#         return img
+        cropped = img[y0:y1, x0:x1]
 
-#     mask = dark_mask & frame_mask
+        ring_mask = np.zeros((crop_size, crop_size), dtype=bool)
+        ring_mask[:ring_width, :] = True
+        ring_mask[-ring_width:, :] = True
+        ring_mask[:, :ring_width] = True
+        ring_mask[:, -ring_width:] = True
 
-#     content_mask = gray > threshold
-#     if content_mask.sum() == 0:
-#         return img
+        ring_pixels = cropped[ring_mask]
+        median_color = np.median(ring_pixels, axis=0).astype(np.uint8)
 
-#     median_color = np.median(img[content_mask], axis=0).astype(np.uint8)
+        top = y0
+        bottom = original_h - crop_size - top
+        left = x0
+        right = original_w - crop_size - left
 
-#     painted = img.copy()
-#     painted[mask] = median_color
+        padded = cv2.copyMakeBorder(
+            cropped,
+            top,
+            bottom,
+            left,
+            right,
+            borderType=cv2.BORDER_CONSTANT,
+            value=median_color.tolist()
+        )
 
-#     return painted
+        return padded
+
+def build_tab_preprocessor():
+    tabular_preprocessor = ColumnTransformer(
+        transformers=[
+            ("age", StandardScaler(), [0]),
+            ("categorical", OneHotEncoder(handle_unknown="ignore"), [1,2])
+        ]
+    )
+    return tabular_preprocessor
+
+def preprocess_tabular(X_tab_train, X_tab_test, save_path="tabular_preprocessor.pkl"):
+    tabular_preprocessor = build_tab_preprocessor()
+    X_tab_train = tabular_preprocessor.fit_transform(X_tab_train)
+    X_tab_test = tabular_preprocessor.transform(X_tab_test)
+
+    if hasattr(X_tab_test, "toarray"):
+        X_tab_test = X_tab_test.toarray()
+    if hasattr(X_tab_train, "toarray"):
+        X_tab_train = X_tab_train.toarray()
+    joblib.dump(tabular_preprocessor, save_path)
+
+    
+    return X_tab_train, X_tab_test, tabular_preprocessor
+
+def preprocess_tabular_test(X_tab_test, save_path="tabular_preprocessor.pkl"):
+    tabular_preprocessor = joblib.load(save_path)
+    X_tab_test = tabular_preprocessor.transform(X_tab_test)
+
+    if hasattr(X_tab_test, "toarray"):
+        X_tab_test = X_tab_test.toarray()
+    return X_tab_test
+=======
+def remove_border(
+    img,
+    threshold=5,
+    border_width=4,
+    min_dark_frame_fraction=0.30
+):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    dark_mask = gray <= threshold
+
+    frame_mask = np.zeros_like(dark_mask, dtype=bool)
+    frame_mask[:border_width, :] = True
+    frame_mask[-border_width:, :] = True
+    frame_mask[:, :border_width] = True
+    frame_mask[:, -border_width:] = True
+
+    dark_frame_fraction = dark_mask[frame_mask].mean()
+
+    if dark_frame_fraction < min_dark_frame_fraction:
+        return img
+
+    mask = dark_mask & frame_mask
+
+    content_mask = gray > threshold
+    if content_mask.sum() == 0:
+        return img
+
+    median_color = np.median(img[content_mask], axis=0).astype(np.uint8)
+
+    painted = img.copy()
+    painted[mask] = median_color
+
+    return painted
+>>>>>>> 20f9c83589fa5a5e03da881b89289fed560fd151
