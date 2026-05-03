@@ -53,11 +53,11 @@ EPOCHS=1
 num_classes=7
 tabular_dim = X_tab_train.shape[1]
 
-# model_base = ResNetFusionModel(
-#     tabular_dim=tabular_dim,
-#     num_classes=num_classes,
-#     dropout=0.3,
-# )
+model_base = ResNetFusionModel(
+    tabular_dim=tabular_dim,
+    num_classes=num_classes,
+    dropout=0.3,
+)
 
 history, metrics, model_probs = model_base.run_experiment(
     X_train_img=X_img_train,

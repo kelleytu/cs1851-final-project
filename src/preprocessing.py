@@ -69,14 +69,7 @@ def preprocess_images(images, power=6, show=False):
         # # cut = (old_size - new_size) // 2
         
         # # cropped = img[cut:cut+new_size, cut:cut+new_size]
-
-        img = remove_border(
-            img,
-            threshold=60,
-            border_width=40,
-            min_dark_frame_fraction=0.02
-        )
-        cropped = img
+        
         cropped = crop_img(img)
 
 
@@ -298,4 +291,6 @@ def preprocess_tabular_test(X_tab_test, save_path="tabular_preprocessor.pkl"):
     if hasattr(X_tab_test, "toarray"):
         X_tab_test = X_tab_test.toarray()
     return X_tab_test
+
+    
 
