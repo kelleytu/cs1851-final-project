@@ -6,6 +6,7 @@ from utils import *
 from preprocessing import *
 import torch
 from model import *
+import seaborn as sns
 
 def plot_model_loss(csv_path):
     # with open(pkl_path, 'rb') as file:
@@ -28,7 +29,13 @@ def plot_model_loss(csv_path):
     plt.tight_layout()
     plt.show()
 
-
+def plot_cm(cm):
+    plt.figure(figsize=(8,6))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title("Confusion Matrix of Best Model")
+    plt.show()
 
 # pkl_path = 'saved_models/20_aug/resnet_fusion_history.pkl'
 # csv_path = 'saved_models/5_border/history.csv'
@@ -56,8 +63,11 @@ def plot_model_loss(csv_path):
 loader = FPDataLoader()
 train_ids, train_images, train_labels, train_tabular, metadata = loader.get_cancer_data()
 
+img_index = 97
+
 # preprocess and use eval transform on images
-gcam_img = preprocess_images(train_images[:2])
+preprocess_index = img_index + 2
+gcam_img = preprocess_images(train_images[:preprocess_index])
 gcam_img = change_img_format(gcam_img)
 gcam_img = transform_data(gcam_img, train=False)
 
@@ -71,4 +81,4 @@ res_net_model = ResNetFusionModel(tabular_dim=tabular_dim, num_classes=7)
 res_net_model.load_state_dict(torch.load("saved_models/15_sched/resnet_fusion_model.pt", map_location="cpu", weights_only=True))
 res_net_model.eval()
 
-grad_cam(res_net_model, gcam_img[0].unsqueeze(0), gcam_tab[0].unsqueeze(0), train_images[0])
+grad_cam(res_net_model, gcam_img[img_index].unsqueeze(0), gcam_tab[img_index].unsqueeze(0), train_images[img_index])

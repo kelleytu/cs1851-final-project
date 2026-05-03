@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 from utils import *
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 # import seaborn as sns
 
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
@@ -108,7 +109,8 @@ class ResNetFusionModel(nn.Module):
             "precision": precision_score(y, y_pred, zero_division = 0, average = avg),
             "recall": recall_score(y, y_pred, zero_division = 0, average = avg),
             "f1": f1_score(y, y_pred, zero_division = 0, average = avg),
-            "roc_auc": np.nan
+            "roc_auc": np.nan,
+            "confusion_matrix": confusion_matrix(y, y_pred)
         }
         metrics["roc_auc"] = roc_auc_score(y, y_proba, average = avg, multi_class = "ovr")
 

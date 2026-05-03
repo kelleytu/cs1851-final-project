@@ -8,6 +8,7 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from scipy import sparse
 import numpy as np
+import seaborn as sns
 
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
@@ -156,5 +157,10 @@ class WrappedModel(torch.nn.Module):
         return self.model(X_img, self.X_tab)
         
 
-
-
+def plot_cm(cm):
+    plt.figure(figsize=(8,6))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title("Confusion Matrix of Best Model")
+    plt.show()
