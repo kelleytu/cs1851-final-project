@@ -48,35 +48,35 @@ X_img_test = preprocess_images(X_img_test)
 # X_tab_val = tab_scaler.transform(X_tab_val)
 # X_tab_test = tab_scaler.transform(X_tab_test)
 
-EPOCHS=20
-num_classes=7
-tabular_dim = X_tab_train.shape[1]
+# EPOCHS=20
+# num_classes=7
+# tabular_dim = X_tab_train.shape[1]
 
-model_base = ResNetFusionModel(
-    tabular_dim=tabular_dim,
-    num_classes=num_classes,
-    dropout=0.3,
-)
+# model_base = ResNetFusionModel(
+#     tabular_dim=tabular_dim,
+#     num_classes=num_classes,
+#     dropout=0.3,
+# )
 
-history, metrics, model_probs = model_base.run_experiment(
-    X_train_img=X_img_train,
-    X_train_tab=X_tab_train,
-    X_test_img=X_img_test,
-    X_test_tab=X_tab_test,
-    y_train=y_train,
-    y_test=y_test,
-    num_epochs=EPOCHS,
-    batch_size=64
-)
-print(history)
+# history, metrics, model_probs = model_base.run_experiment(
+#     X_train_img=X_img_train,
+#     X_train_tab=X_tab_train,
+#     X_test_img=X_img_test,
+#     X_test_tab=X_tab_test,
+#     y_train=y_train,
+#     y_test=y_test,
+#     num_epochs=EPOCHS,
+#     batch_size=64
+# )
+# print(history)
 
 
-print(pd.Series(metrics))
+# print(pd.Series(metrics))
 
-torch.save(model_base.state_dict(), "resnet_fusion_model.pt")
-joblib.dump(history, "resnet_fusion_history.pkl")
-joblib.dump(metrics, "resnet_fusion_metrics.pkl")
-print("Saved model weights, history, and metrics.")
+# torch.save(model_base.state_dict(), "resnet_fusion_model.pt")
+# joblib.dump(history, "resnet_fusion_history.pkl")
+# joblib.dump(metrics, "resnet_fusion_metrics.pkl")
+# print("Saved model weights, history, and metrics.")
 
-history = pd.DataFrame(history)
-history.to_csv("history.csv", index=False)
+# history = pd.DataFrame(history)
+# history.to_csv("history.csv", index=False)

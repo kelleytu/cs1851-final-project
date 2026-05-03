@@ -59,18 +59,18 @@ def preprocess_images(images, power=6, show=False):
 
         og = img.copy()
         # center crop, originally 224 x 224
-        old_size = 224
-        new_size = 204
-        cut = (old_size - new_size) // 2
+        # old_size = 224
+        # new_size = 204
+        # cut = (old_size - new_size) // 2
         
-        cropped = img[cut:cut+new_size, cut:cut+new_size]
-        # img = remove_border(
-        #     img,
-        #     threshold=40,
-        #     border_width=25,
-        #     min_dark_frame_fraction=0.02
-        # )
-        # cropped = img
+        # cropped = img[cut:cut+new_size, cut:cut+new_size]
+        img = remove_border(
+            img,
+            threshold=60,
+            border_width=40,
+            min_dark_frame_fraction=0.02
+        )
+        cropped = img
 
         # hair removal
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
@@ -243,36 +243,36 @@ def transform_data(X, train=True, show=False):
         
     return torch.stack(augmented)
 
-# def remove_border(
-#     img,
-#     threshold=5,
-#     border_width=4,
-#     min_dark_frame_fraction=0.30
-# ):
-#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+def remove_border(
+    img,
+    threshold=5,
+    border_width=4,
+    min_dark_frame_fraction=0.30
+):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-#     dark_mask = gray <= threshold
+    dark_mask = gray <= threshold
 
-#     frame_mask = np.zeros_like(dark_mask, dtype=bool)
-#     frame_mask[:border_width, :] = True
-#     frame_mask[-border_width:, :] = True
-#     frame_mask[:, :border_width] = True
-#     frame_mask[:, -border_width:] = True
+    frame_mask = np.zeros_like(dark_mask, dtype=bool)
+    frame_mask[:border_width, :] = True
+    frame_mask[-border_width:, :] = True
+    frame_mask[:, :border_width] = True
+    frame_mask[:, -border_width:] = True
 
-#     dark_frame_fraction = dark_mask[frame_mask].mean()
+    dark_frame_fraction = dark_mask[frame_mask].mean()
 
-#     if dark_frame_fraction < min_dark_frame_fraction:
-#         return img
+    if dark_frame_fraction < min_dark_frame_fraction:
+        return img
 
-#     mask = dark_mask & frame_mask
+    mask = dark_mask & frame_mask
 
-#     content_mask = gray > threshold
-#     if content_mask.sum() == 0:
-#         return img
+    content_mask = gray > threshold
+    if content_mask.sum() == 0:
+        return img
 
-#     median_color = np.median(img[content_mask], axis=0).astype(np.uint8)
+    median_color = np.median(img[content_mask], axis=0).astype(np.uint8)
 
-#     painted = img.copy()
-#     painted[mask] = median_color
+    painted = img.copy()
+    painted[mask] = median_color
 
-#     return painted
+    return painted
