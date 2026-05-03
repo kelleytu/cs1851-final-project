@@ -239,8 +239,6 @@ def transform_data(X, train=True, show=False):
         
     return torch.stack(augmented)
 
-<<<<<<< HEAD
-
 def crop_img(img, crop_size=204, ring_width=20):
         h, w = img.shape[:2]
 
@@ -309,38 +307,4 @@ def preprocess_tabular_test(X_tab_test, save_path="tabular_preprocessor.pkl"):
     if hasattr(X_tab_test, "toarray"):
         X_tab_test = X_tab_test.toarray()
     return X_tab_test
-=======
-def remove_border(
-    img,
-    threshold=5,
-    border_width=4,
-    min_dark_frame_fraction=0.30
-):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    dark_mask = gray <= threshold
-
-    frame_mask = np.zeros_like(dark_mask, dtype=bool)
-    frame_mask[:border_width, :] = True
-    frame_mask[-border_width:, :] = True
-    frame_mask[:, :border_width] = True
-    frame_mask[:, -border_width:] = True
-
-    dark_frame_fraction = dark_mask[frame_mask].mean()
-
-    if dark_frame_fraction < min_dark_frame_fraction:
-        return img
-
-    mask = dark_mask & frame_mask
-
-    content_mask = gray > threshold
-    if content_mask.sum() == 0:
-        return img
-
-    median_color = np.median(img[content_mask], axis=0).astype(np.uint8)
-
-    painted = img.copy()
-    painted[mask] = median_color
-
-    return painted
->>>>>>> 20f9c83589fa5a5e03da881b89289fed560fd151

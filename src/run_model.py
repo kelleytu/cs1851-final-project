@@ -49,15 +49,9 @@ X_tab_train, X_tab_val, _ = preprocess_tabular(X_tab_train, X_tab_val)
 # X_tab_val = tab_scaler.transform(X_tab_val)
 # X_tab_val = tab_scaler.transform(X_tab_val)
 
-<<<<<<< HEAD
 EPOCHS=15
 num_classes=7
 tabular_dim = X_tab_train.shape[1]
-=======
-# EPOCHS=20
-# num_classes=7
-# tabular_dim = X_tab_train.shape[1]
->>>>>>> 20f9c83589fa5a5e03da881b89289fed560fd151
 
 # model_base = ResNetFusionModel(
 #     tabular_dim=tabular_dim,
@@ -65,7 +59,6 @@ tabular_dim = X_tab_train.shape[1]
 #     dropout=0.3,
 # )
 
-<<<<<<< HEAD
 history, metrics, model_probs = model_base.run_experiment(
     X_train_img=X_img_train,
     X_train_tab=X_tab_train,
@@ -77,20 +70,6 @@ history, metrics, model_probs = model_base.run_experiment(
     batch_size=64
 )
 print(history)
-=======
-# history, metrics, model_probs = model_base.run_experiment(
-#     X_train_img=X_img_train,
-#     X_train_tab=X_tab_train,
-#     X_test_img=X_img_test,
-#     X_test_tab=X_tab_test,
-#     y_train=y_train,
-#     y_test=y_test,
-#     num_epochs=EPOCHS,
-#     batch_size=64
-# )
-# print(history)
->>>>>>> 20f9c83589fa5a5e03da881b89289fed560fd151
-
 
 # print(pd.Series(metrics))
 
