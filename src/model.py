@@ -130,8 +130,8 @@ class ResNetFusionModel(nn.Module):
         # assign higher priority to minority data
         num_classes = len(torch.unique(y_train))
         class_weights = torch.tensor(compute_class_weight(class_weight="balanced", classes=np.arange(num_classes), y=y_train.cpu().numpy()), dtype=torch.float32)
-        # criterion = nn.CrossEntropyLoss(weight=class_weights)
-        criterion = FocalLoss(weights=class_weights, gamma=2.0)
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+        # criterion = FocalLoss(weights=class_weights, gamma=2.0)
         optimizer = optim.AdamW(
             [
                 {"params": self.image_classifier.parameters(), "lr": 1e-5},
@@ -175,4 +175,33 @@ class ResNetFusionModel(nn.Module):
                 f"val loss {val_loss:.4f} | val acc {val_acc:.4f} | val f1 {metrics['f1']:.4f}")
 
         self.load_state_dict(best_state)
-        return history, best_metrics, best_probs
+
+        best_embeddings = self.get_embeddings(X_val_img, X_val_tab, batch_size=batch_size)
+        
+        return history, best_metrics, best_probs, best_embeddings
+    
+    def get_embeddings(self, X_img, X_tab, batch_size=64):
+        self.eval()
+        img_embeddings = []
+        tab_embeddings = []
+        combined_embeddings = []
+
+        dataset = TensorDataset(X_img, X_tab)
+        loader = DataLoader(dataset, batch_size=batch_size,shuffle=False)
+
+        with torch.no_grad():
+            for img, tab in loader:
+                img_emb = self.image_classifier(img)
+                tab_emb = self.tabular_head(tab)
+                combined = torch.cat([img_emb, tab_emb], dim=1)
+                
+                img_embeddings.append(img_emb.numpy())
+                tab_embeddings.append(tab_emb.numpy())
+                combined_embeddings.append(combined.numpy())
+
+        return {
+            "img": np.concatenate(img_embeddings, axis=0),
+            "tab": np.concatenate(tab_embeddings, axis=0),
+            "combined": np.concatenate(combined_embeddings, axis=0)
+        }
+

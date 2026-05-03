@@ -29,14 +29,14 @@ test_images = transform_data(test_images, train=False)
 # test_tabular = StandardScaler().fit_transform(test_tabular)
 
 # preprocess tabular data
-test_tabular = preprocess_tabular_test(test_tabular, save_path="saved_models/10/tabular_preprocessor.pkl")
+test_tabular = preprocess_tabular_test(test_tabular, save_path="saved_models/15_sched/tabular_preprocessor.pkl")
 tabular_dim = test_tabular.shape[1]
 print("Processed Tabular Shape:", test_tabular.shape)
 test_tabular = torch.tensor(test_tabular).float()
 
 # load in model
 res_net_model = ResNetFusionModel(tabular_dim=tabular_dim, num_classes=num_classes)
-res_net_model.load_state_dict(torch.load("saved_models/10/resnet_fusion_model.pt", map_location="cpu", weights_only=True))
+res_net_model.load_state_dict(torch.load("saved_models/15_sched/resnet_fusion_model.pt", map_location="cpu", weights_only=True))
 res_net_model.eval()
 
 # get predictions

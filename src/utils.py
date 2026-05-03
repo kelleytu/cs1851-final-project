@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as T
 import torch.nn as nn
 
+from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+from pytorch_grad_cam.utils.image import show_cam_on_image
+
 class FocalLoss(nn.Module):
     def __init__(self, weights, alpha=1, gamma=2, reduction='mean'):
         super(FocalLoss, self).__init__()
@@ -21,8 +25,6 @@ class FocalLoss(nn.Module):
 
         if self.reduction == "mean":
             return focal_loss.mean()
-
-
 
 class FusionDataset(Dataset):
     def __init__(self, X_image, X_tabular, y):
@@ -64,7 +66,18 @@ def visualize_augmentation(image_tensor):
     plt.tight_layout()
     plt.show()
 
+def grad_cam(model, X_img, X_tab):
+    model.eval()
+
+    with torch.no_grad():
+        logits = self(X_img, X_tab)
+        y_proba = torch.nn.functional.softmax(logits, dim=1)
+        y_pred = logits.argmax(dim=1)
+        confidence = [0, y_pred]
+
+        model = 
 
 
-
+def wrapped_model(model, X_tab):
+    def 
 
