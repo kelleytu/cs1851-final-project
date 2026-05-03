@@ -4,6 +4,11 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as T
 import torch.nn as nn
 
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+from scipy import sparse
+import numpy as np
+
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
@@ -66,18 +71,90 @@ def visualize_augmentation(image_tensor):
     plt.tight_layout()
     plt.show()
 
-def grad_cam(model, X_img, X_tab):
+
+def plot_embedding(data, labels, title, random_state=0, save=False, filename=None):
+    """
+    data: (N, D) numpy array
+    labels: (N,) array-like (ints)
+    """
+    if sparse.issparse(data):
+        data = data.toarray()
+
+    data = np.asarray(data)
+    labels = np.asarray(labels).reshape(-1)
+
+
+    data_50 = PCA(n_components=min(50, data.shape[1]), random_state=random_state).fit_transform(data)
+    reduced = TSNE(
+        n_components=2,
+        init="pca",
+        learning_rate="auto",
+        random_state=random_state,
+    ).fit_transform(data_50)
+
+    plt.figure(figsize=(5, 4))
+    plt.scatter(reduced[:, 0], reduced[:, 1], c=labels, cmap="tab10", s=3)
+
+    plt.title(f"tsne projection of {title}")
+    plt.tight_layout()
+
+    if save:
+        plt.savefig(filename, dpi=200)
+    plt.show()
+
+def grad_cam(model, X_img, X_tab, original_X_img):
     model.eval()
+    wrapped_model = WrappedModel(model, X_tab)
+    target_layer = [model.image_classifier.layer4[-1]]
 
     with torch.no_grad():
-        logits = self(X_img, X_tab)
-        y_proba = torch.nn.functional.softmax(logits, dim=1)
-        y_pred = logits.argmax(dim=1)
-        confidence = [0, y_pred]
+        logits = model(X_img, X_tab)
+        y_pred = logits.argmax(dim=1).item()
+    
+    targets = [ClassifierOutputTarget(y_pred)]
 
-        model = 
+    with GradCAM(model=wrapped_model, target_layers=target_layer) as cam:
+        grayscale_cam = cam(input_tensor=X_img, targets=targets)[0]
+        img_np = X_img.squeeze(0).detach().cpu().permute(1, 2, 0).numpy()
+
+        mean = np.array([0.485, 0.456, 0.406])
+        std = np.array([0.229, 0.224, 0.225])
+        img_np = std * img_np + mean
+
+        img_np = np.clip(img_np, 0, 1).astype(np.float32)
+
+        grayscale_cam = np.squeeze(grayscale_cam).astype(np.float32)
+
+        visualization = show_cam_on_image(
+            img_np,
+            grayscale_cam,
+            use_rgb=True
+        )
+        
+        plt.figure(figsize=(10, 4))
+
+        plt.subplot(1, 2, 1)
+        plt.imshow(original_X_img)
+        plt.title("Original image")
+        plt.axis("off")
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(visualization)
+        plt.title(f"Grad-CAM for predicted class {y_pred}")
+        plt.axis("off")
+
+        plt.tight_layout()
+        plt.show()
+    
+class WrappedModel(torch.nn.Module):
+    def __init__(self, model, X_tab):
+        super().__init__()
+        self.model = model
+        self.X_tab = X_tab
+    
+    def forward(self, X_img):
+        return self.model(X_img, self.X_tab)
+        
 
 
-def wrapped_model(model, X_tab):
-    def 
 

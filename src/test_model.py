@@ -12,6 +12,59 @@ import joblib
 num_classes=7
 tabular_dim = 3
 
+def apply_tta_batch(images, mode):
+    if mode == "orig":
+        return images
+    elif mode == "hflip":
+        return torch.flip(images, dims=[3])
+    elif mode == "vflip":
+        return torch.flip(images, dims=[2])
+    elif mode == "hvflip":
+        return torch.flip(torch.flip(images, dims=[3]), dims=[2])
+    else:
+        raise ValueError(f"Unknown TTA mode: {mode}")
+
+def predict_tta_simple(model, X_img, X_tab):
+    tta_probs = []
+    with torch.no_grad():
+        test_variants = [
+            X_img,
+            torch.flip(X_img, dims=[3]),                   
+            torch.flip(X_img, dims=[2]),                   
+            torch.flip(torch.flip(X_img, dims=[3]), dims=[2]),
+        ]
+
+        for _, imgs in enumerate(test_variants):
+            logits = model(imgs, X_tab)
+            probs = torch.softmax(logits, dim=1)
+            tta_probs.append(probs)
+
+        avg_probs = torch.stack(tta_probs, dim=0).mean(dim=0)
+        preds = torch.argmax(avg_probs, dim=1).cpu().numpy()
+    return preds
+
+def predict_tta(model, X_img, X_tab, batch_size=64):
+    tta_probs = []
+    tta_modes = ["orig", "hflip", "vflip", "hvflip"]
+    with torch.no_grad():
+        for mode in tta_modes:
+            aug_img = apply_tta_batch(X_img, mode)
+            probs_chunk = []
+            n = aug_img.size(0)
+            for i in range(0, n, batch_size):
+                end = min(i + batch_size, n)
+                batch_imgs = aug_img[i:end]
+                batch_tab = X_tab[i:end]
+
+                logits = model(batch_imgs, batch_tab)
+                probs = torch.softmax(logits, dim=1)
+                probs_chunk.append(probs)
+            tta_probs.append(torch.cat(probs_chunk, dim=0))
+    avg_probs = torch.stack(tta_probs, dim=0).mean(dim=0)
+    preds = torch.argmax(avg_probs, dim=1).numpy()
+    return preds
+
+
 # load data
 loader = FPDataLoader()
 test1_ids, test1_images, test1_tabular = loader.get_test_cancer_data(1)
@@ -44,6 +97,8 @@ with torch.no_grad():
     logits = res_net_model(test_images, test_tabular)
     probs = torch.softmax(logits, dim=1)
     preds = torch.argmax(probs, dim=1).cpu().numpy()
+# preds = predict_tta_simple(res_net_model, test_images, test_tabular)
+# preds = predict_tta(res_net_model, test_images, test_tabular, batch_size=64)
 
 # submission
 submission = pd.DataFrame({"ID" : test_ids, "label" : preds})

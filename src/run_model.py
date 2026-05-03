@@ -22,6 +22,7 @@ from sklearn.metrics import (
 )
 import joblib
 from sklearn.preprocessing import StandardScaler
+import os
 
 
 loader = FPDataLoader()
@@ -49,7 +50,7 @@ X_tab_train, X_tab_val, _ = preprocess_tabular(X_tab_train, X_tab_val)
 # X_tab_val = tab_scaler.transform(X_tab_val)
 # X_tab_val = tab_scaler.transform(X_tab_val)
 
-EPOCHS=15
+EPOCHS=1
 num_classes=7
 tabular_dim = X_tab_train.shape[1]
 
@@ -59,7 +60,7 @@ model_base = ResNetFusionModel(
     dropout=0.3,
 )
 
-history, metrics, model_probs = model_base.run_experiment(
+history, metrics, model_probs, best_embeddings = model_base.run_experiment(
     X_train_img=X_img_train,
     X_train_tab=X_tab_train,
     X_val_img=X_img_val,
@@ -73,10 +74,17 @@ print(history)
 
 print(pd.Series(metrics))
 
-torch.save(model_base.state_dict(), "resnet_fusion_model.pt")
-joblib.dump(history, "resnet_fusion_history.pkl")
-joblib.dump(metrics, "resnet_fusion_metrics.pkl")
+
+path_name = f"saved_models/{EPOCHS}/"
+model_name = f"resnet_fusion_model_{metrics['f1']:.4f}"
+
+os.makedirs(path_name, exist_ok=True)
+torch.save(model_base.state_dict(), path_name + model_name + ".pt")
+# joblib.dump(history, "resnet_fusion_history.pkl")
+joblib.dump(metrics, path_name + model_name + "_metrics.pkl")
 print("Saved model weights, history, and metrics.")
 
 history = pd.DataFrame(history)
-history.to_csv("history.csv", index=False)
+history.to_csv(path_name + "history.csv", index=False)
+
+torch.save(best_embeddings, path_name + "val_embeddings.pt")

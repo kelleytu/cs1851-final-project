@@ -130,8 +130,8 @@ class ResNetFusionModel(nn.Module):
         # assign higher priority to minority data
         num_classes = len(torch.unique(y_train))
         class_weights = torch.tensor(compute_class_weight(class_weight="balanced", classes=np.arange(num_classes), y=y_train.cpu().numpy()), dtype=torch.float32)
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
-        # criterion = FocalLoss(weights=class_weights, gamma=2.0)
+        # criterion = nn.CrossEntropyLoss(weight=class_weights)
+        criterion = FocalLoss(weights=class_weights, gamma=2.0)
         optimizer = optim.AdamW(
             [
                 {"params": self.image_classifier.parameters(), "lr": 1e-5},
@@ -176,11 +176,11 @@ class ResNetFusionModel(nn.Module):
 
         self.load_state_dict(best_state)
 
-        best_embeddings = self.get_embeddings(X_val_img, X_val_tab, batch_size=batch_size)
+        best_embeddings = self.get_embeddings(X_val_img, X_val_tab, y_val, batch_size=batch_size)
         
         return history, best_metrics, best_probs, best_embeddings
     
-    def get_embeddings(self, X_img, X_tab, batch_size=64):
+    def get_embeddings(self, X_img, X_tab, y_val,batch_size=64):
         self.eval()
         img_embeddings = []
         tab_embeddings = []
@@ -195,13 +195,14 @@ class ResNetFusionModel(nn.Module):
                 tab_emb = self.tabular_head(tab)
                 combined = torch.cat([img_emb, tab_emb], dim=1)
                 
-                img_embeddings.append(img_emb.numpy())
-                tab_embeddings.append(tab_emb.numpy())
-                combined_embeddings.append(combined.numpy())
+                img_embeddings.append(img_emb)
+                tab_embeddings.append(tab_emb)
+                combined_embeddings.append(combined)
 
         return {
-            "img": np.concatenate(img_embeddings, axis=0),
-            "tab": np.concatenate(tab_embeddings, axis=0),
-            "combined": np.concatenate(combined_embeddings, axis=0)
+            "img": torch.cat(img_embeddings, dim=0),
+            "tab": torch.cat(tab_embeddings, dim=0),
+            "combined": torch.cat(combined_embeddings, dim=0),
+            "labels": y_val
         }
 
