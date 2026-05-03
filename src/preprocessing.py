@@ -69,7 +69,6 @@ def preprocess_images(images, power=6, show=False):
         # # cut = (old_size - new_size) // 2
         
         # # cropped = img[cut:cut+new_size, cut:cut+new_size]
-<<<<<<< HEAD
 
         img = remove_border(
             img,
@@ -79,15 +78,7 @@ def preprocess_images(images, power=6, show=False):
         )
         cropped = img
         cropped = crop_img(img)
-=======
-        img = remove_border(
-            img,
-            threshold=60,
-            border_width=40,
-            min_dark_frame_fraction=0.02
-        )
-        cropped = img
->>>>>>> 20f9c83589fa5a5e03da881b89289fed560fd151
+
 
         # hair removal
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
