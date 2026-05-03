@@ -64,20 +64,20 @@ def preprocess_images(images, power=6, show=False):
 
         og = img.copy()
         # center crop, originally 224 x 224
-        # old_size = 224
-        # new_size = 204
-        # cut = (old_size - new_size) // 2
+        # # old_size = 224
+        # # new_size = 204
+        # # cut = (old_size - new_size) // 2
         
-        # cropped = img[cut:cut+new_size, cut:cut+new_size]
+        # # cropped = img[cut:cut+new_size, cut:cut+new_size]
 <<<<<<< HEAD
 
-        # img = remove_border(
-        #     img,
-        #     threshold=40,
-        #     border_width=25,
-        #     min_dark_frame_fraction=0.02
-        # )
-        # cropped = img
+        img = remove_border(
+            img,
+            threshold=60,
+            border_width=40,
+            min_dark_frame_fraction=0.02
+        )
+        cropped = img
         cropped = crop_img(img)
 =======
         img = remove_border(
