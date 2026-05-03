@@ -103,7 +103,7 @@ def plot_embedding(data, labels, title, random_state=0, save=False, filename=Non
         plt.savefig(filename, dpi=200)
     plt.show()
 
-def grad_cam(model, X_img, X_tab, original_X_img):
+def grad_cam(model, X_img, X_tab, original_X_img, y_true):
     model.eval()
     wrapped_model = WrappedModel(model, X_tab)
     target_layer = [model.image_classifier.layer4[-1]]
@@ -141,7 +141,7 @@ def grad_cam(model, X_img, X_tab, original_X_img):
 
         plt.subplot(1, 2, 2)
         plt.imshow(visualization)
-        plt.title(f"Grad-CAM for predicted class {y_pred}")
+        plt.title(f"Grad-CAM | Predicted = {y_pred}, Actual = {y_true}")
         plt.axis("off")
 
         plt.tight_layout()

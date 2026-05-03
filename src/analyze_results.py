@@ -63,16 +63,25 @@ def plot_cm(cm):
 loader = FPDataLoader()
 train_ids, train_images, train_labels, train_tabular, metadata = loader.get_cancer_data()
 
-img_index = 97
+X_img_train, X_img_val, X_tab_train, X_tab_val, ids_train, ids_val, y_train, y_val = train_test_split(
+    train_images, 
+    train_tabular, 
+    train_ids, 
+    train_labels,
+    test_size=0.2,
+    random_state=42, 
+    stratify=train_labels)
+
+img_index = 32
 
 # preprocess and use eval transform on images
 preprocess_index = img_index + 2
-gcam_img = preprocess_images(train_images[:preprocess_index])
+gcam_img = preprocess_images(X_img_train[:preprocess_index])
 gcam_img = change_img_format(gcam_img)
 gcam_img = transform_data(gcam_img, train=False)
 
 # preprocess tabular data
-gcam_tab = preprocess_tabular_test(train_tabular, save_path="saved_models/15_sched/tabular_preprocessor.pkl")
+gcam_tab = preprocess_tabular_test(X_tab_train, save_path="saved_models/15_sched/tabular_preprocessor.pkl")
 tabular_dim = gcam_tab.shape[1]
 gcam_tab = torch.tensor(gcam_tab).float()
 
@@ -81,4 +90,4 @@ res_net_model = ResNetFusionModel(tabular_dim=tabular_dim, num_classes=7)
 res_net_model.load_state_dict(torch.load("saved_models/15_sched/resnet_fusion_model.pt", map_location="cpu", weights_only=True))
 res_net_model.eval()
 
-grad_cam(res_net_model, gcam_img[img_index].unsqueeze(0), gcam_tab[img_index].unsqueeze(0), train_images[img_index])
+grad_cam(res_net_model, gcam_img[img_index].unsqueeze(0), gcam_tab[img_index].unsqueeze(0), X_img_train[img_index], y_train[img_index])

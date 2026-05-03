@@ -46,7 +46,7 @@ X_img_val = preprocess_images(X_img_val)
 X_tab_train, X_tab_val, _ = preprocess_tabular(X_tab_train, X_tab_val)
 
 
-EPOCHS=1
+EPOCHS=20
 num_classes=7
 tabular_dim = X_tab_train.shape[1]
 
