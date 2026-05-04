@@ -7,3 +7,4 @@ jupyter
 torch
 opencv-python
 grad-cam
+joblib
