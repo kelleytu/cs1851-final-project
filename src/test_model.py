@@ -12,19 +12,6 @@ import joblib
 num_classes=7
 tabular_dim = 3
 
-def apply_tta_batch(images, mode):
-    if mode == "orig":
-        return images
-    elif mode == "hflip":
-        return torch.flip(images, dims=[3])
-    elif mode == "vflip":
-        return torch.flip(images, dims=[2])
-    elif mode == "hvflip":
-        return torch.flip(torch.flip(images, dims=[3]), dims=[2])
-    else:
-        raise ValueError(f"Unknown TTA mode: {mode}")
-
-
 def predict_tta_simple(model, X_img, X_tab):
     '''
     Predicts class based on averaged model performance on original and augmented images
@@ -45,28 +32,6 @@ def predict_tta_simple(model, X_img, X_tab):
 
         avg_probs = torch.stack(tta_probs, dim=0).mean(dim=0)
         preds = torch.argmax(avg_probs, dim=1).cpu().numpy()
-    return preds
-
-# applies tta in batches
-def predict_tta(model, X_img, X_tab, batch_size=64):
-    tta_probs = []
-    tta_modes = ["orig", "hflip", "vflip", "hvflip"]
-    with torch.no_grad():
-        for mode in tta_modes:
-            aug_img = apply_tta_batch(X_img, mode)
-            probs_chunk = []
-            n = aug_img.size(0)
-            for i in range(0, n, batch_size):
-                end = min(i + batch_size, n)
-                batch_imgs = aug_img[i:end]
-                batch_tab = X_tab[i:end]
-
-                logits = model(batch_imgs, batch_tab)
-                probs = torch.softmax(logits, dim=1)
-                probs_chunk.append(probs)
-            tta_probs.append(torch.cat(probs_chunk, dim=0))
-    avg_probs = torch.stack(tta_probs, dim=0).mean(dim=0)
-    preds = torch.argmax(avg_probs, dim=1).numpy()
     return preds
 
 
@@ -101,8 +66,7 @@ res_net_model.eval()
 #     logits = res_net_model(test_images, test_tabular)
 #     probs = torch.softmax(logits, dim=1)
 #     preds = torch.argmax(probs, dim=1).cpu().numpy()
-# preds = predict_tta_simple(res_net_model, test_images, test_tabular)
-preds = predict_tta(res_net_model, test_images, test_tabular, batch_size=64)
+preds = predict_tta_simple(res_net_model, test_images, test_tabular)
 
 # submission
 submission = pd.DataFrame({"ID" : test_ids, "label" : preds})
@@ -110,5 +74,5 @@ print(submission.head())
 print(submission["label"].value_counts())
 print(submission.shape)
 
-submission.to_csv("complex_tta_submission.csv", index=False)
+submission.to_csv("simple_tta_submission.csv", index=False)
 print("Saved submission file: submission_test1_test2.csv")
