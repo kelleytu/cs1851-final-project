@@ -82,23 +82,23 @@ test_images = transform_data(test_images, train=False)
 # test_tabular = StandardScaler().fit_transform(test_tabular)
 
 # preprocess tabular data
-test_tabular = preprocess_tabular_test(test_tabular, save_path="saved_models/15_sched/tabular_preprocessor.pkl")
+test_tabular = preprocess_tabular_test(test_tabular, save_path="saved_models/20/tabular_preprocessor.pkl")
 tabular_dim = test_tabular.shape[1]
 print("Processed Tabular Shape:", test_tabular.shape)
 test_tabular = torch.tensor(test_tabular).float()
 
 # load in model
 res_net_model = ResNetFusionModel(tabular_dim=tabular_dim, num_classes=num_classes)
-res_net_model.load_state_dict(torch.load("saved_models/15_sched/resnet_fusion_model.pt", map_location="cpu", weights_only=True))
+res_net_model.load_state_dict(torch.load("saved_models/20/resnet_fusion_model_0.6143.pt", map_location="cpu", weights_only=True))
 res_net_model.eval()
 
 # get predictions
-with torch.no_grad():
-    logits = res_net_model(test_images, test_tabular)
-    probs = torch.softmax(logits, dim=1)
-    preds = torch.argmax(probs, dim=1).cpu().numpy()
+# with torch.no_grad():
+#     logits = res_net_model(test_images, test_tabular)
+#     probs = torch.softmax(logits, dim=1)
+#     preds = torch.argmax(probs, dim=1).cpu().numpy()
 # preds = predict_tta_simple(res_net_model, test_images, test_tabular)
-# preds = predict_tta(res_net_model, test_images, test_tabular, batch_size=64)
+preds = predict_tta(res_net_model, test_images, test_tabular, batch_size=64)
 
 # submission
 submission = pd.DataFrame({"ID" : test_ids, "label" : preds})
@@ -106,29 +106,5 @@ print(submission.head())
 print(submission["label"].value_counts())
 print(submission.shape)
 
-submission.to_csv("submission3_test1_test2.csv", index=False)
+submission.to_csv("complex_tta_submission.csv", index=False)
 print("Saved submission file: submission_test1_test2.csv")
-
-
-# load and evaluate models
-# tab_model = joblib.load("tab_model.pkl")
-# tabular_probs = tab_model.predict(test_tabular, return_proba = True)
- 
-
-# state_dict = torch.load("cnn_weights_no_erosion.pth", weights_only=True)
-# cnn_model = BasicCNN(num_classes)
-# cnn_model.load_state_dict(state_dict)
-
-
-# cnn_model.eval()
-# with torch.no_grad():
-#     logits = cnn_model(test_images)
-#     cnn_probs = torch.nn.functional.softmax(logits, dim=1).numpy()
-
-
-
-# alpha = 0.6
-# combined_probs = alpha * tabular_probs + (1 - alpha) * cnn_probs
-# combined_preds = np.argmax(combined_probs, axis = 1)
-
-# np.savetxt('ensemble_preds.csv', combined_preds, delimiter=',') 

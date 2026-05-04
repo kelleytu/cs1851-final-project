@@ -40,23 +40,23 @@ def plot_cm(cm):
 # pkl_path = 'saved_models/20_aug/resnet_fusion_history.pkl'
 # csv_path = 'saved_models/5_border/history.csv'
 
-# path = sys.argv[1]
+path = sys.argv[1]
 
-# csv_path = path + "/history.csv"
-# # plot_model_loss(csv_path)
+csv_path = path + "/history.csv"
+plot_model_loss(csv_path)
 
 
-# embedding_path = path + "/val_embeddings.pt"
-# embds = torch.load(embedding_path)
+embedding_path = path + "/val_embeddings.pt"
+embds = torch.load(embedding_path)
 
-# cmb = embds["combined"].numpy()
-# img = embds["img"].numpy()
-# tab = embds["tab"].numpy()
-# labels = embds["labels"].numpy()
+cmb = embds["combined"].numpy()
+img = embds["img"].numpy()
+tab = embds["tab"].numpy()
+labels = embds["labels"].numpy()
 
-# plot_embedding(cmb, labels, "combined", random_state=42)
-# plot_embedding(img, labels, "image", random_state=42)
-# plot_embedding(tab, labels, "tabular", random_state=42)
+plot_embedding(cmb, labels, "combined", random_state=42)
+plot_embedding(img, labels, "image", random_state=42)
+plot_embedding(tab, labels, "tabular", random_state=42)
 
 
 
