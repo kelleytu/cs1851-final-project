@@ -1,5 +1,6 @@
 data/
 .finalproject/
+.fp/
 fproj/
 .DS_Store
 __pycache__/
