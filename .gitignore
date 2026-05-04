@@ -5,7 +5,7 @@ fproj/
 __pycache__/
 results/
 preprocess/
-*.csv
-*.pkl
-*.pt
-saved_models/
+src/saved_models/*
+!src/saved_models/20/
+!src/saved_models/20/**
+submissions/

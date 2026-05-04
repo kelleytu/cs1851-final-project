@@ -38,8 +38,8 @@ CODE FOR ANALYSIS AND INTERPRETATION:
 USAGE:
 - python run_model.py
         • Trains model and saves model data and metrics. Model data and metrics are saved in new folder labelled based on number of epochs used. Epoch number is hard coded in run_model.py. Transform preprocessor may be saved in the current working directory and should be moved into the saved_model/{model_folder}
-- python analyze_results.py {model_folder}
-        • Plots model loss, accuracy, and f1 across epochs. Plots embeddings and displays Grad-CAM analysis of sample image.
+- python analyze_results.py saved_model/20
+        • Plots model loss, accuracy, and f1 across epochs. Plots embeddings and displays Grad-CAM analysis of sample image. Model used is best model based on test dataset.
 
 
 RESULTS:

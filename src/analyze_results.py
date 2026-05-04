@@ -76,13 +76,13 @@ gcam_img = change_img_format(gcam_img)
 gcam_img = transform_data(gcam_img, train=False)
 
 # preprocess tabular data
-gcam_tab = preprocess_tabular_test(X_tab_train, save_path="saved_models/15_sched/tabular_preprocessor.pkl")
+gcam_tab = preprocess_tabular_test(X_tab_train, save_path="saved_models/20/tabular_preprocessor.pkl")
 tabular_dim = gcam_tab.shape[1]
 gcam_tab = torch.tensor(gcam_tab).float()
 
 # load in model
 res_net_model = ResNetFusionModel(tabular_dim=tabular_dim, num_classes=7)
-res_net_model.load_state_dict(torch.load("saved_models/15_sched/resnet_fusion_model.pt", map_location="cpu", weights_only=True))
+res_net_model.load_state_dict(torch.load("saved_models/20/resnet_fusion_model.pt", map_location="cpu", weights_only=True))
 res_net_model.eval()
 
 grad_cam(res_net_model, gcam_img[img_index].unsqueeze(0), gcam_tab[img_index].unsqueeze(0), X_img_train[img_index], y_train[img_index])
