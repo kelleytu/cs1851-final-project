@@ -37,7 +37,6 @@ class ResNetFusionModel(nn.Module):
         super().__init__()
         res_mod = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         in_features = res_mod.fc.in_features
-        # remove classifier for fusion
         res_mod.fc = nn.Identity()
         self.image_classifier = res_mod
         self.tabular_head = nn.Sequential(
@@ -48,7 +47,7 @@ class ResNetFusionModel(nn.Module):
             nn.ReLU(),
         )
         self.classifier = nn.Sequential(
-            nn.Linear(in_features+64, 512),  # might need to change first argument
+            nn.Linear(in_features+64, 512),
             nn.ReLU(),
             nn.Dropout(p=dropout),
             nn.Linear(512, 256),
@@ -75,7 +74,6 @@ class ResNetFusionModel(nn.Module):
             shuffle=False
         )
 
-        # num_batches = (.shape[0] + batch_size - 1) // batch_size
         self.train()
         total_loss = 0.0
 

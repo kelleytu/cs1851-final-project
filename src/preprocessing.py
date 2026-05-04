@@ -14,6 +14,9 @@ class FPDataLoader:
         pass
                     
     def get_cancer_data(self):
+        """
+        Loads in train data from .npy files in data folder
+        """
         train_ids = np.load("../data/train_ids.npy", allow_pickle=True)
         train_images = np.load("../data/train_images.npy", allow_pickle=True)
         train_labels = np.load("../data/train_labels.npy", allow_pickle=True)
@@ -27,6 +30,9 @@ class FPDataLoader:
 
 
     def get_test_cancer_data(self, test_set):
+        """
+        Loads in test data from .npy files in data folder
+        """
         test_ids = np.load(f"../data/test{test_set}_ids.npy", allow_pickle=True)
         test_images = np.load(f"../data/test{test_set}_images.npy", allow_pickle=True)
         test_tabular = np.load(f"../data/test{test_set}_tabular.npy", allow_pickle=True)
@@ -36,6 +42,9 @@ class FPDataLoader:
         return test_ids, test_images, test_tabular
 
     def show_sample_imgs(self, train_images, train_labels):
+        """
+        Displays sample images given a set of train data. Optionally used to view train images.
+        """
         cancer_classes = np.unique(train_labels)
         for i, cancer_type in enumerate(cancer_classes):
             index = np.where(train_labels == cancer_type)[0][0]
@@ -49,8 +58,10 @@ class FPDataLoader:
 
 
 def preprocess_images(images, power=6, show=False):
-    # normalization
-    # gray scale
+    """
+    Performs image cropping and padding, hair removal, and color constancy.
+    If show=True, displays the preprocessed images.
+    """
     save_dir = os.path.join("..", "preprocess")
     os.makedirs(save_dir, exist_ok=True)
 
@@ -62,26 +73,19 @@ def preprocess_images(images, power=6, show=False):
     for i, img in enumerate(images):
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR) # now in opencv chn order
 
-        og = img.copy()
-        # center crop, originally 224 x 224
-        # # old_size = 224
-        # # new_size = 204
-        # # cut = (old_size - new_size) // 2
-        
-        # # cropped = img[cut:cut+new_size, cut:cut+new_size]
-        
+        # cropping
+        og = img.copy()    
         cropped = crop_img(img)
-
 
         # hair removal
         gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 100, 200) # mess around with this
+        edges = cv2.Canny(gray, 100, 200)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
         closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
         eroded = cv2.erode(closed, kernel, iterations=1)
 
         lines = cv2.HoughLinesP(closed, cv2.HOUGH_PROBABILISTIC, np.pi / 720, 35, 1, 5, 16) # from paper
-        # print(f"num lines found {lines}")
+
         if lines is not None:
             filled, line_mask, dilated = remove_fill_lines(cropped, gray, lines, 1, 300, 3)
             img = filled
@@ -140,6 +144,9 @@ def preprocess_images(images, power=6, show=False):
     return preprocess
 
 def change_img_format(images):
+    """
+    Transposes image channels for tensor conversion.
+    """
     images = np.transpose(images, (0, 3, 1, 2))
     images = torch.tensor(images).float()
 
@@ -147,6 +154,9 @@ def change_img_format(images):
 
 
 def draw_lines(lines, img):
+    """
+    Draws lines on image for preprocessing visualization
+    """
     for i in range(0, len(lines)):
         x1, y1, x2, y2 = lines[i][0]
         cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 3, cv2.LINE_AA)
@@ -154,6 +164,9 @@ def draw_lines(lines, img):
 
 
 def remove_fill_lines(img, gray, lines, min_len, max_len, mask_thickness):
+    """
+    Paints identified lines (hairs) with background color. Dilates line before filling in line
+    """
     line_mask = np.zeros_like(gray)
 
     for line in lines:
@@ -171,7 +184,10 @@ def remove_fill_lines(img, gray, lines, min_len, max_len, mask_thickness):
 
 
 def transform_data(X, train=True, show=False):
-    
+    """
+    Transforms images before inputting them into the model. If train=True, performs augmentation
+    via random horizontal and vertical flips; otherwise, no augmentation. Then, normalizes the data.
+    """
     if train:
         transform = T.Compose(
             [
@@ -224,6 +240,10 @@ def transform_data(X, train=True, show=False):
     return torch.stack(augmented)
 
 def crop_img(img, crop_size=204, ring_width=20):
+        """
+        Crops an image of size 224x224 to size 204x204 to remove artifacts along the borders of the images. 
+        Then, uses the median color of the outer ring of the image (of width ring_width) to re-pad the border to 224x224.
+        """
         h, w = img.shape[:2]
 
         original_h, original_w = h, w
@@ -262,6 +282,9 @@ def crop_img(img, crop_size=204, ring_width=20):
         return padded
 
 def build_tab_preprocessor():
+    """
+    Builds a ColumnTransformer to standardize the age column and one-hot encode the categorical data.
+    """    
     tabular_preprocessor = ColumnTransformer(
         transformers=[
             ("age", StandardScaler(), [0]),
@@ -271,6 +294,9 @@ def build_tab_preprocessor():
     return tabular_preprocessor
 
 def preprocess_tabular(X_tab_train, X_tab_test, save_path="tabular_preprocessor.pkl"):
+    """
+    Fits Column Transformer on training data and transforms both training and test data.
+    """
     tabular_preprocessor = build_tab_preprocessor()
     X_tab_train = tabular_preprocessor.fit_transform(X_tab_train)
     X_tab_test = tabular_preprocessor.transform(X_tab_test)
@@ -285,6 +311,9 @@ def preprocess_tabular(X_tab_train, X_tab_test, save_path="tabular_preprocessor.
     return X_tab_train, X_tab_test, tabular_preprocessor
 
 def preprocess_tabular_test(X_tab_test, save_path="tabular_preprocessor.pkl"):
+    """
+    Transforms test tabular data using fitted Column Transformer from model training.
+    """
     tabular_preprocessor = joblib.load(save_path)
     X_tab_test = tabular_preprocessor.transform(X_tab_test)
 

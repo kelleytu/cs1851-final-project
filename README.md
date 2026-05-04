@@ -1,18 +1,46 @@
 # cs1851-final-project
 
 MODEL ARCHITECTURE:
-- Uses late fusion approach to combine outputted probabilities of CNN image classification and gradient boosting classification models
-    - CNN: performs classification based on train_images; uses dropout and max pooling
-    - Gradient Boosting Classifier: performs classification based on train_tabular; uses tuned hyperparameters to optimize for the best F1 performance
-- To combine the two models, we calculated the probabilities of each class on the test dataset, then used a weighted average of the probabiities outputted by each model to obtain the final predictions
+- Uses an intermediate-fusion approach to combine image and tabular data.
+
+UPDATES FROM MIDTERM CODE SUBMISSION:
+In the midterm code submission, we implemented a late-fusion model which took a weighted average of the CNN image predictions with the Gradient Boosting Classifier tabular data predictions. Since then, we have made the following improvements (in chronological order):
+
+- Implemented further preprocessing steps based on other papers:
+        • Hair removal (with and without erosion) identifies edges and masks them. Erosion degrades the edges such that only the stronger/bolder edges are removed; However, we found that no erosion was able to better capture more of the hairs.
+        • Color constancy: adjusts color and lighting across samples to make each image have more standardized color balance
+        • Center cropping: we noticed gray borders around some images and circular black borders around others, so we center cropped the images to remove these artifacts, resizing the image to 204x204 (originally 224x224)
+- Intermediate fusion with CNN + MLP classifier: concatenating CNN flattened output with tabular data, then classifying with MLP.
+- Added ResNet image classifier with default weights:
+        • Started by loading and implementing an image classifier with just the ResNet architecture, without the pre-trained weights. We found that test_f1 was slightly higher than our regular CNN model, but not meaningfully better.
+        • Then, loaded pre-trained weights alongside ResNet architecture and found that test_f1 was significantly better even after just one epoch. Additionally, the ResNet model trained faster
+
+- Added class weights to address heavy class imbalance in the training data. This was especially relevant because our evaluation emphasized macro performance, where poor performance on rare classes would significantly reduce test_f1 score. After computing class weights in training and adding it to the loss function, validation f1 became much more balanced across classes, signaling that the model was not predicting dominant labels as much.
+- Switched optimizer from Adam to AdamW to apply weight decay without hindering optimal convergence and assign separate learning rates:
+       • We used AdamW to decouple weight decay from gradient updates, so that it is applied directly to parameter updates and not the loss function, leading to improved generalization. We found that the model performed significantly better on out-of-sample data when it came to test_f1 score.
+       • We assigned a smaller learning rate for the pre-trained ResNet model and a larger learning rate for the tabular classifier. The smaller learning rate for ResNet allowed helpful features from the pre-trained model to remain relevant.
+
+- Added simple data augmentation consisting of random vertical and horizontal flips. However, this likely had little effect since lesions are already mostly elliptical and have no directionality.
+- Image cropping: instead of just cropping the 224x224 image to 204x204 (as stated above), we instead cropped to 204x204 and then added padding to restore the standard 224x224 ResNet image size. 
+        • Padding color was determined using the median pixel value of the outer 20 pixels of the image, which 
+
+- Implemented scheduler to reduce learning rates when performance plateaus. We did not want f1 change to be too aggresive so factor was set to 0.5 and patience to 3. Patience of 3 may appear small but we were running a max of 20 epochs and often observed plateauing around epochs 10-15.  
+- Modified loss function to include focal loss in addition to cross entropy loss. Default gamma was used to encourage model to focus on harder (lower confidence) samples.
+- tta
+
+CODE FOR ANALYSIS AND INTERPRETATION:
+- Added plotting of model loss, accuracy, and f1 across epochs. Was helpful for examining overfitting and determining number of epochs for future runs
+- Added generation confusion matrix of best model (based on f1). Best model is saved per run based on epoch f1. Confusion matrix revealed extreme class imbalance (significantly more class 4) and common misclassifications. For example, class 4 was ofen misclassified as class 0 and 3.
+- Added plotting of embeddings. Embeddings include image features, tabular features, and concatenated image and tabular features. Allows us to visualize learned representations. Embeddings revealed overlap of representations of class 0, 3, and 4, verifying confusion matrix observations.
+- Implemented Grad-CAM to visualize regions important for class prediction. 
+
+
+USAGE:
+- python run_model.py
+        • Trains model and saves model data and metrics. Model data and metrics are saved in new folder labelled based on number of epochs used. Epoch number is hard coded in run_model.py. Transform preprocessor may be saved in the current working directory and should be moved into the saved_model/{model_folder}
+- python analyze_results.py {model_folder}
+        • Plots model loss, accuracy, and f1 across epochs. Plots embeddings and displays Grad-CAM analysis of sample image.
+
 
 RESULTS:
-- Observed that the CNN had better accuracy than the Gradient Boosting Classifier but performed worse on all other metrics
-- For the ensemble model, we observed that all metrics were the same or better than both models individually, suggesting that multimodal learning may improve performance across metrics
-
-NEXT STEPS:
-- Work on preprocessing the images, implementing color constancy, hair removal, and data augmentation
-- Incorporate further preprocessing on the tabular data (handling for missingness, duplicates, etc.) 
-- Further tune hyperparameters for Gradient Boosting model
-- Test other model architectures to include in our ensemble model
-- Consider early or intermediate fusion of multiple modalities and/or perform further computation to determine the optimal alpha value (hyperparameter which determines relative weighting of CNN vs gradient boosting model)
+- 

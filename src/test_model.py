@@ -24,7 +24,11 @@ def apply_tta_batch(images, mode):
     else:
         raise ValueError(f"Unknown TTA mode: {mode}")
 
+
 def predict_tta_simple(model, X_img, X_tab):
+    '''
+    Predicts class based on averaged model performance on original and augmented images
+    '''
     tta_probs = []
     with torch.no_grad():
         test_variants = [
@@ -43,6 +47,7 @@ def predict_tta_simple(model, X_img, X_tab):
         preds = torch.argmax(avg_probs, dim=1).cpu().numpy()
     return preds
 
+# applies tta in batches
 def predict_tta(model, X_img, X_tab, batch_size=64):
     tta_probs = []
     tta_modes = ["orig", "hflip", "vflip", "hvflip"]
@@ -79,7 +84,6 @@ test_tabular = np.concatenate([test1_tabular, test2_tabular])
 test_images = preprocess_images(test_images)
 test_images = change_img_format(test_images)
 test_images = transform_data(test_images, train=False)
-# test_tabular = StandardScaler().fit_transform(test_tabular)
 
 # preprocess tabular data
 test_tabular = preprocess_tabular_test(test_tabular, save_path="saved_models/20/tabular_preprocessor.pkl")

@@ -12,9 +12,6 @@ def plot_model_loss(csv_path):
     # with open(pkl_path, 'rb') as file:
     #     history = pickle.load(file)
     history = pd.read_csv(csv_path)
-
-    # print(history)
-    # train loss, test loss test acc, f1
     metrics_list = ["val_loss", "val_acc", "val_f1"]
 
     fig, axes = plt.subplots(1,3, figsize=(15,4))
@@ -37,8 +34,6 @@ def plot_cm(cm):
     plt.title("Confusion Matrix of Best Model")
     plt.show()
 
-# pkl_path = 'saved_models/20_aug/resnet_fusion_history.pkl'
-# csv_path = 'saved_models/5_border/history.csv'
 
 path = sys.argv[1]
 
@@ -46,6 +41,7 @@ csv_path = path + "/history.csv"
 plot_model_loss(csv_path)
 
 
+# gets and plots embeddings of best model 
 embedding_path = path + "/val_embeddings.pt"
 embds = torch.load(embedding_path)
 
@@ -57,7 +53,6 @@ labels = embds["labels"].numpy()
 plot_embedding(cmb, labels, "combined", random_state=42)
 plot_embedding(img, labels, "image", random_state=42)
 plot_embedding(tab, labels, "tabular", random_state=42)
-
 
 
 loader = FPDataLoader()

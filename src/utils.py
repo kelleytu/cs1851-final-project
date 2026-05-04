@@ -93,9 +93,19 @@ def plot_embedding(data, labels, title, random_state=0, save=False, filename=Non
         random_state=random_state,
     ).fit_transform(data_50)
 
-    plt.figure(figsize=(5, 4))
-    plt.scatter(reduced[:, 0], reduced[:, 1], c=labels, cmap="tab10", s=3)
+    plt.figure(figsize=(6, 4))
+    
+    classes = np.unique(labels)
+    cmap = plt.cm.get_cmap("tab10", len(classes))
+    
+    for i, c in enumerate(classes):
+        # get all of one class
+        idx = labels == c
+        plt.scatter(reduced[idx, 0], reduced[idx, 1], label=f"class {c}", color=cmap(i), s=5)
 
+
+    # plt.scatter(reduced[:, 0], reduced[:, 1], c=labels, cmap="tab10", s=3)
+    plt.legend()
     plt.title(f"tsne projection of {title}")
     plt.tight_layout()
 

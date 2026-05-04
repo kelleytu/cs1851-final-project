@@ -38,13 +38,9 @@ X_img_train, X_img_val, X_tab_train, X_tab_val, ids_train, ids_val, y_train, y_v
     random_state=42, 
     stratify=train_labels)
 
-# sample_images = preprocess_images(X_img_train, show=False) 
-# sample_images = augment_data(sample_images, show=True)
-
 X_img_train = preprocess_images(X_img_train)
 X_img_val = preprocess_images(X_img_val)
 X_tab_train, X_tab_val, _ = preprocess_tabular(X_tab_train, X_tab_val)
-
 
 EPOCHS=20
 num_classes=7
